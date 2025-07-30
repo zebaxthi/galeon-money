@@ -1,188 +1,166 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { supabase } from "@/lib/supabase"
+import { useSettings } from "@/hooks/useSettings"
 import { 
   User, 
   Mail, 
-  Bell, 
-  Shield, 
+  Save, 
+  Users, 
+  UserPlus, 
+  Crown, 
+  X, 
+  Plus,
   Palette,
-  Globe,
   DollarSign,
-  Save,
+  Globe,
+  Bell,
+  Shield,
   LogOut,
   Trash2,
-  Users,
-  Plus,
-  UserPlus,
-  Crown,
-  X
+  Loader2
 } from "lucide-react"
 
-interface ContextMember {
-  id: string
-  email: string
-  name: string
-  role: 'owner' | 'member'
-  joined_at: string
-}
-
-interface FinancialContext {
-  id: string
-  name: string
-  description: string
-  created_at: string
-}
-
 export default function AjustesPage() {
-  const [user, setUser] = useState<any>(null)
+  const router = useRouter()
+  const {
+    profile,
+    context,
+    contextMembers,
+    preferences,
+    loading,
+    error,
+    updateProfile,
+    updatePreferences,
+    updateContext,
+    inviteMember,
+    removeMember,
+    signOut,
+    deleteAccount,
+    clearError
+  } = useSettings()
+
+  // Estados locales para formularios
   const [nombre, setNombre] = useState('')
-  const [email, setEmail] = useState('')
-  const [moneda, setMoneda] = useState('USD')
-  const [idioma, setIdioma] = useState('es')
-  const [notificaciones, setNotificaciones] = useState(true)
-  const [notificacionesEmail, setNotificacionesEmail] = useState(false)
-  const [notificacionesPresupuesto, setNotificacionesPresupuesto] = useState(true)
-  
-  // Estados para contexto financiero
-  const [currentContext, setCurrentContext] = useState<FinancialContext | null>(null)
-  const [contextMembers, setContextMembers] = useState<ContextMember[]>([])
-  const [newMemberEmail, setNewMemberEmail] = useState('')
   const [contextName, setContextName] = useState('')
   const [contextDescription, setContextDescription] = useState('')
-  const [isLoadingContext, setIsLoadingContext] = useState(false)
+  const [newMemberEmail, setNewMemberEmail] = useState('')
+  const [isLoadingAction, setIsLoadingAction] = useState(false)
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUser(user)
-        setNombre(user.user_metadata?.name || '')
-        setEmail(user.email || '')
-        loadFinancialContext()
-      }
+  // Inicializar estados cuando se cargan los datos
+  useState(() => {
+    if (profile) {
+      setNombre(profile.name || '')
     }
-    getUser()
-  }, [])
-
-  const loadFinancialContext = async () => {
-    try {
-      // Cargar contexto financiero actual (mock data por ahora)
-      const mockContext = {
-        id: '1',
-        name: 'Finanzas Familiares',
-        description: 'Contexto financiero compartido',
-        created_at: new Date().toISOString()
-      }
-      
-      const mockMembers = [
-        {
-          id: '1',
-          email: 'usuario@ejemplo.com',
-          name: 'Usuario Principal',
-          role: 'owner' as const,
-          joined_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          email: 'pareja@ejemplo.com',
-          name: 'Pareja',
-          role: 'member' as const,
-          joined_at: new Date().toISOString()
-        }
-      ]
-      
-      setCurrentContext(mockContext)
-      setContextMembers(mockMembers)
-      setContextName(mockContext.name)
-      setContextDescription(mockContext.description)
-    } catch (error) {
-      console.error('Error loading financial context:', error)
+    if (context) {
+      setContextName(context.name || '')
+      setContextDescription(context.description || '')
     }
-  }
+  }, [profile, context])
 
+  // Manejar guardado de perfil
   const handleSaveProfile = async () => {
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { name: nombre }
-      })
-      if (error) throw error
+      setIsLoadingAction(true)
+      clearError()
+      await updateProfile({ name: nombre })
       alert('Perfil actualizado correctamente')
     } catch (error) {
       console.error('Error updating profile:', error)
-      alert('Error al actualizar el perfil')
+    } finally {
+      setIsLoadingAction(false)
     }
   }
 
+  // Manejar actualización de contexto
   const handleUpdateContext = async () => {
-    setIsLoadingContext(true)
     try {
-      // TODO: Implementar actualización real del contexto
+      setIsLoadingAction(true)
+      clearError()
+      await updateContext({ 
+        name: contextName, 
+        description: contextDescription 
+      })
       alert('Contexto actualizado correctamente')
     } catch (error) {
       console.error('Error updating context:', error)
-      alert('Error al actualizar el contexto')
     } finally {
-      setIsLoadingContext(false)
+      setIsLoadingAction(false)
     }
   }
 
+  // Manejar invitación de miembro
   const handleInviteMember = async () => {
     if (!newMemberEmail.trim()) return
     
-    setIsLoadingContext(true)
     try {
-      // TODO: Implementar invitación real
-      const newMember = {
-        id: Date.now().toString(),
-        email: newMemberEmail,
-        name: newMemberEmail.split('@')[0],
-        role: 'member' as const,
-        joined_at: new Date().toISOString()
-      }
-      
-      setContextMembers([...contextMembers, newMember])
+      setIsLoadingAction(true)
+      clearError()
+      await inviteMember(newMemberEmail)
       setNewMemberEmail('')
-      alert('Invitación enviada correctamente')
+      alert('Miembro invitado correctamente')
     } catch (error) {
       console.error('Error inviting member:', error)
-      alert('Error al enviar la invitación')
     } finally {
-      setIsLoadingContext(false)
+      setIsLoadingAction(false)
     }
   }
 
-  const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('¿Estás seguro de que quieres remover a este miembro?')) return
+  // Manejar eliminación de miembro
+  const handleRemoveMember = async (userId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este miembro?')) return
     
     try {
-      // TODO: Implementar remoción real
-      setContextMembers(contextMembers.filter(m => m.id !== memberId))
-      alert('Miembro removido correctamente')
+      setIsLoadingAction(true)
+      clearError()
+      await removeMember(userId)
+      alert('Miembro eliminado correctamente')
     } catch (error) {
       console.error('Error removing member:', error)
-      alert('Error al remover el miembro')
+    } finally {
+      setIsLoadingAction(false)
     }
   }
 
+  // Manejar cierre de sesión
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/'
+    try {
+      await signOut()
+      router.push('/auth/signin')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
+  // Manejar eliminación de cuenta
   const handleDeleteAccount = async () => {
-    if (confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) {
-      // TODO: Implementar eliminación de cuenta
-      alert('Funcionalidad de eliminación de cuenta en desarrollo')
+    if (!confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) return
+    
+    try {
+      setIsLoadingAction(true)
+      await deleteAccount()
+      router.push('/')
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      setIsLoadingAction(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -193,6 +171,12 @@ export default function AjustesPage() {
           Configura tu cuenta y preferencias de la aplicación
         </p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Perfil de Usuario */}
@@ -223,7 +207,7 @@ export default function AjustesPage() {
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
-                  value={email}
+                  value={profile?.email || ''}
                   disabled
                   className="pl-10 bg-muted"
                 />
@@ -233,9 +217,17 @@ export default function AjustesPage() {
               </p>
             </div>
 
-            <Button onClick={handleSaveProfile} className="w-full">
-              <Save className="mr-2 h-4 w-4" />
-              Guardar Cambios
+            <Button 
+              onClick={handleSaveProfile} 
+              disabled={isLoadingAction}
+              className="w-full"
+            >
+              {isLoadingAction ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isLoadingAction ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           </CardContent>
         </Card>
@@ -274,11 +266,15 @@ export default function AjustesPage() {
 
             <Button 
               onClick={handleUpdateContext} 
-              disabled={isLoadingContext}
+              disabled={isLoadingAction}
               className="w-full"
             >
-              <Save className="mr-2 h-4 w-4" />
-              {isLoadingContext ? 'Guardando...' : 'Actualizar Contexto'}
+              {isLoadingAction ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isLoadingAction ? 'Guardando...' : 'Actualizar Contexto'}
             </Button>
           </CardContent>
         </Card>
@@ -305,9 +301,13 @@ export default function AjustesPage() {
               />
               <Button 
                 onClick={handleInviteMember}
-                disabled={isLoadingContext || !newMemberEmail.trim()}
+                disabled={isLoadingAction || !newMemberEmail.trim()}
               >
-                <Plus className="h-4 w-4" />
+                {isLoadingAction ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
@@ -316,7 +316,7 @@ export default function AjustesPage() {
             {/* Lista de miembros */}
             <div className="space-y-3">
               {contextMembers.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={member.user_id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center space-x-2">
                       {member.role === 'owner' && (
@@ -325,8 +325,8 @@ export default function AjustesPage() {
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-muted-foreground">{member.email}</p>
+                      <p className="font-medium">{member.profile?.name || 'Sin nombre'}</p>
+                      <p className="text-sm text-muted-foreground">{member.profile?.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -337,7 +337,8 @@ export default function AjustesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveMember(member.id)}
+                        onClick={() => handleRemoveMember(member.user_id)}
+                        disabled={isLoadingAction}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -374,39 +375,45 @@ export default function AjustesPage() {
             <Separator />
 
             <div className="space-y-2">
-              <Label htmlFor="moneda">Moneda</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <select 
-                  id="moneda"
-                  className="w-full p-2 pl-10 border rounded-md"
-                  value={moneda}
-                  onChange={(e) => setMoneda(e.target.value)}
-                >
-                  <option value="USD">USD - Dólar Estadounidense</option>
-                  <option value="EUR">EUR - Euro</option>
-                  <option value="MXN">MXN - Peso Mexicano</option>
-                  <option value="COP">COP - Peso Colombiano</option>
-                  <option value="ARS">ARS - Peso Argentino</option>
-                </select>
-              </div>
+              <Label>Moneda</Label>
+              <Select 
+                value={preferences.currency} 
+                onValueChange={(value) => updatePreferences({ currency: value })}
+              >
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center">
+                    <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="Selecciona una moneda" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD - Dólar Estadounidense</SelectItem>
+                  <SelectItem value="EUR">EUR - Euro</SelectItem>
+                  <SelectItem value="MXN">MXN - Peso Mexicano</SelectItem>
+                  <SelectItem value="COP">COP - Peso Colombiano</SelectItem>
+                  <SelectItem value="ARS">ARS - Peso Argentino</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="idioma">Idioma</Label>
-              <div className="relative">
-                <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <select 
-                  id="idioma"
-                  className="w-full p-2 pl-10 border rounded-md"
-                  value={idioma}
-                  onChange={(e) => setIdioma(e.target.value)}
-                >
-                  <option value="es">Español</option>
-                  <option value="en">English</option>
-                  <option value="pt">Português</option>
-                </select>
-              </div>
+              <Label>Idioma</Label>
+              <Select 
+                value={preferences.language} 
+                onValueChange={(value) => updatePreferences({ language: value })}
+              >
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center">
+                    <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="Selecciona un idioma" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="pt">Português</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -431,8 +438,8 @@ export default function AjustesPage() {
                 </p>
               </div>
               <Switch
-                checked={notificaciones}
-                onCheckedChange={setNotificaciones}
+                checked={preferences.notifications}
+                onCheckedChange={(checked) => updatePreferences({ notifications: checked })}
               />
             </div>
 
@@ -444,8 +451,8 @@ export default function AjustesPage() {
                 </p>
               </div>
               <Switch
-                checked={notificacionesEmail}
-                onCheckedChange={setNotificacionesEmail}
+                checked={preferences.emailNotifications}
+                onCheckedChange={(checked) => updatePreferences({ emailNotifications: checked })}
               />
             </div>
 
@@ -457,8 +464,8 @@ export default function AjustesPage() {
                 </p>
               </div>
               <Switch
-                checked={notificacionesPresupuesto}
-                onCheckedChange={setNotificacionesPresupuesto}
+                checked={preferences.budgetAlerts}
+                onCheckedChange={(checked) => updatePreferences({ budgetAlerts: checked })}
               />
             </div>
           </CardContent>
@@ -481,7 +488,12 @@ export default function AjustesPage() {
                 Cambiar Contraseña
               </Button>
               
-              <Button variant="outline" onClick={handleSignOut} className="w-full">
+              <Button 
+                variant="outline" 
+                onClick={handleSignOut} 
+                className="w-full"
+                disabled={isLoadingAction}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Cerrar Sesión
               </Button>
@@ -497,10 +509,15 @@ export default function AjustesPage() {
               <Button 
                 variant="destructive" 
                 onClick={handleDeleteAccount}
+                disabled={isLoadingAction}
                 className="w-full"
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar Cuenta
+                {isLoadingAction ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                {isLoadingAction ? 'Eliminando...' : 'Eliminar Cuenta'}
               </Button>
             </div>
           </CardContent>
