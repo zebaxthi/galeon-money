@@ -7,33 +7,90 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { useMovements } from "@/hooks/useMovements"
+import { useCategories } from "@/hooks/useCategories"
 import { 
   Plus, 
   Minus, 
   Calendar,
   DollarSign,
   Tag,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react"
 
 export default function MovimientosPage() {
-  const [tipo, setTipo] = useState<'ingreso' | 'egreso'>('egreso')
+  const [tipo, setTipo] = useState<'income' | 'expense'>('expense')
   const [monto, setMonto] = useState('')
-  const [categoria, setCategoria] = useState('')
+  const [categoryId, setCategoryId] = useState('')
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
-  const [notas, setNotas] = useState('')
+  const [description, setDescription] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { toast } = useToast()
+  const { movements, loading: movementsLoading, createMovement } = useMovements(undefined, 10)
+  const { categories, loading: categoriesLoading, getCategoriesByType } = useCategories()
+
+  const availableCategories = getCategoriesByType(tipo)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implementar guardado en Supabase
-    console.log({ tipo, monto, categoria, fecha, notas })
+    
+    if (!monto || !categoryId || !fecha) {
+      toast({
+        title: "Error",
+        description: "Por favor completa todos los campos requeridos",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    
+    try {
+      await createMovement({
+        amount: parseFloat(monto),
+        type: tipo,
+        category_id: categoryId,
+        movement_date: fecha,
+        description: description || undefined
+      })
+
+      // Limpiar formulario
+      setMonto('')
+      setCategoryId('')
+      setDescription('')
+      setFecha(new Date().toISOString().split('T')[0])
+
+      toast({
+        title: "¡Éxito!",
+        description: "Movimiento registrado correctamente",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo registrar el movimiento. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const movimientosRecientes = [
-    { id: 1, tipo: 'egreso', monto: 45.50, categoria: 'Alimentación', descripcion: 'Supermercado', fecha: '2024-01-15' },
-    { id: 2, tipo: 'ingreso', monto: 2500.00, categoria: 'Trabajo', descripcion: 'Salario', fecha: '2024-01-15' },
-    { id: 3, tipo: 'egreso', monto: 60.00, categoria: 'Transporte', descripcion: 'Gasolina', fecha: '2024-01-14' },
-  ]
+  const formatAmount = (amount: number, type: 'income' | 'expense') => {
+    const prefix = type === 'income' ? '+' : '-'
+    return `${prefix}$${amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -58,13 +115,16 @@ export default function MovimientosPage() {
               {/* Tipo de Movimiento */}
               <div className="space-y-2">
                 <Label>Tipo de Movimiento</Label>
-                <Tabs value={tipo} onValueChange={(value) => setTipo(value as 'ingreso' | 'egreso')}>
+                <Tabs value={tipo} onValueChange={(value) => {
+                  setTipo(value as 'income' | 'expense')
+                  setCategoryId('') // Reset category when type changes
+                }}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="ingreso" className="text-green-600">
+                    <TabsTrigger value="income" className="text-green-600">
                       <Plus className="mr-2 h-4 w-4" />
                       Ingreso
                     </TabsTrigger>
-                    <TabsTrigger value="egreso" className="text-red-600">
+                    <TabsTrigger value="expense" className="text-red-600">
                       <Minus className="mr-2 h-4 w-4" />
                       Egreso
                     </TabsTrigger>
@@ -93,17 +153,27 @@ export default function MovimientosPage() {
               {/* Categoría */}
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría</Label>
-                <div className="relative">
-                  <Tag className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="categoria"
-                    placeholder="Ej: Alimentación, Transporte, Salario"
-                    className="pl-10"
-                    value={categoria}
-                    onChange={(e) => setCategoria(e.target.value)}
-                    required
-                  />
-                </div>
+                <Select value={categoryId} onValueChange={setCategoryId} disabled={categoriesLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={
+                      categoriesLoading 
+                        ? "Cargando categorías..." 
+                        : availableCategories.length === 0
+                          ? `No hay categorías de ${tipo === 'income' ? 'ingresos' : 'egresos'}`
+                          : "Selecciona una categoría"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center space-x-2">
+                          <span>{category.icon}</span>
+                          <span>{category.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Fecha */}
@@ -122,24 +192,33 @@ export default function MovimientosPage() {
                 </div>
               </div>
 
-              {/* Notas */}
+              {/* Descripción */}
               <div className="space-y-2">
-                <Label htmlFor="notas">Notas (opcional)</Label>
+                <Label htmlFor="description">Descripción (opcional)</Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="notas"
-                    placeholder="Descripción adicional..."
+                    id="description"
+                    placeholder="Descripción del movimiento..."
                     className="pl-10"
-                    value={notas}
-                    onChange={(e) => setNotas(e.target.value)}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                Registrar Movimiento
+              <Button type="submit" className="w-full" disabled={isSubmitting || categoriesLoading}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registrando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Registrar Movimiento
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>
@@ -154,41 +233,59 @@ export default function MovimientosPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {movimientosRecientes.map((movimiento) => (
-                <div key={movimiento.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-full ${
-                      movimiento.tipo === 'ingreso' 
-                        ? 'bg-green-100 text-green-600 dark:bg-green-900/20' 
-                        : 'bg-red-100 text-red-600 dark:bg-red-900/20'
-                    }`}>
-                      {movimiento.tipo === 'ingreso' ? (
-                        <Plus className="h-4 w-4" />
-                      ) : (
-                        <Minus className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium">{movimiento.descripcion}</p>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {movimiento.categoria}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {movimiento.fecha}
-                        </span>
+            {movementsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Cargando movimientos...</span>
+              </div>
+            ) : movements.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No hay movimientos registrados</p>
+                <p className="text-sm">Registra tu primer movimiento usando el formulario</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {movements.map((movement) => {
+                  const category = categories.find(c => c.id === movement.category_id)
+                  return (
+                    <div key={movement.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-full ${
+                          movement.type === 'income' 
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/20' 
+                            : 'bg-red-100 text-red-600 dark:bg-red-900/20'
+                        }`}>
+                          {movement.type === 'income' ? (
+                            <Plus className="h-4 w-4" />
+                          ) : (
+                            <Minus className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {movement.description || 'Sin descripción'}
+                          </p>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {category?.icon} {category?.name || 'Sin categoría'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(movement.movement_date)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                      <span className={`font-bold ${
+                        movement.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatAmount(movement.amount, movement.type)}
+                      </span>
                     </div>
-                  </div>
-                  <span className={`font-bold ${
-                    movimiento.tipo === 'ingreso' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {movimiento.tipo === 'ingreso' ? '+' : '-'}${movimiento.monto.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

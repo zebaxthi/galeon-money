@@ -1,37 +1,47 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { useMovements, useMovementStats } from "@/hooks/useMovements"
+import { useBudgetProgress } from "@/hooks/useBudgets"
+import { useCategories } from "@/hooks/useCategories"
 import { 
   TrendingUp, 
   TrendingDown, 
   Wallet, 
   Plus,
   Target,
-  BarChart3
+  BarChart3,
+  Loader2
 } from "lucide-react"
 import Link from "next/link"
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
-    balance: 0,
-    income: 0,
-    expenses: 0,
-    budgetProgress: 0
-  })
+  const { movements, loading: movementsLoading } = useMovements(undefined, 5)
+  const { stats, loading: statsLoading } = useMovementStats()
+  const { budgetProgress, loading: budgetLoading } = useBudgetProgress()
+  const { categories } = useCategories()
 
-  useEffect(() => {
-    // TODO: Fetch real data from Supabase
-    // For now, using mock data
-    setStats({
-      balance: 2500.00,
-      income: 3500.00,
-      expenses: 1000.00,
-      budgetProgress: 65
+  // Calcular progreso promedio de presupuestos
+  const averageBudgetProgress = budgetProgress.length > 0 
+    ? budgetProgress.reduce((acc, budget) => {
+        const percentage = (budget.spent / budget.amount) * 100
+        return acc + percentage
+      }, 0) / budgetProgress.length
+    : 0
+
+  const formatAmount = (amount: number, type?: 'income' | 'expense') => {
+    const prefix = type === 'income' ? '+' : type === 'expense' ? '-' : ''
+    return `${prefix}$${amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      month: 'short',
+      day: 'numeric'
     })
-  }, [])
+  }
 
   return (
     <div className="space-y-6">
@@ -50,12 +60,23 @@ export default function DashboardPage() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ${stats.balance.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +2.5% desde el mes pasado
-            </p>
+            {statsLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Cargando...</span>
+              </div>
+            ) : (
+              <>
+                <div className={`text-2xl font-bold ${
+                  stats.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {formatAmount(stats.balance)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Balance actual
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -65,12 +86,21 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              ${stats.income.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +12% desde el mes pasado
-            </p>
+            {statsLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Cargando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatAmount(stats.totalIncome)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total de ingresos
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -80,12 +110,21 @@ export default function DashboardPage() {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              ${stats.expenses.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              -5% desde el mes pasado
-            </p>
+            {statsLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Cargando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-red-600">
+                  {formatAmount(stats.totalExpenses)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total de gastos
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -95,15 +134,30 @@ export default function DashboardPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.budgetProgress}%
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-              <div 
-                className="bg-violet-600 h-2 rounded-full" 
-                style={{ width: `${stats.budgetProgress}%` }}
-              ></div>
-            </div>
+            {budgetLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Cargando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {averageBudgetProgress.toFixed(1)}%
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div 
+                    className={`h-2 rounded-full ${
+                      averageBudgetProgress >= 100 ? 'bg-red-500' :
+                      averageBudgetProgress >= 80 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(averageBudgetProgress, 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {budgetProgress.length} presupuesto{budgetProgress.length !== 1 ? 's' : ''} activo{budgetProgress.length !== 1 ? 's' : ''}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -147,29 +201,58 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Supermercado</p>
-                  <p className="text-sm text-muted-foreground">Alimentación</p>
-                </div>
-                <span className="text-red-600 font-medium">-$45.50</span>
+            {movementsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Cargando movimientos...</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Salario</p>
-                  <p className="text-sm text-muted-foreground">Trabajo</p>
-                </div>
-                <span className="text-green-600 font-medium">+$2,500.00</span>
+            ) : movements.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No hay movimientos registrados</p>
+                <p className="text-sm">Registra tu primer movimiento</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Gasolina</p>
-                  <p className="text-sm text-muted-foreground">Transporte</p>
-                </div>
-                <span className="text-red-600 font-medium">-$60.00</span>
+            ) : (
+              <div className="space-y-4">
+                {movements.map((movement) => {
+                  const category = categories.find(c => c.id === movement.category_id)
+                  return (
+                    <div key={movement.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-full ${
+                          movement.type === 'income' 
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/20' 
+                            : 'bg-red-100 text-red-600 dark:bg-red-900/20'
+                        }`}>
+                          {movement.type === 'income' ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {movement.description || 'Sin descripción'}
+                          </p>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {category?.icon} {category?.name || 'Sin categoría'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(movement.movement_date)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`font-medium text-sm ${
+                        movement.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatAmount(movement.amount, movement.type)}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
+            )}
             <Button variant="outline" asChild className="w-full mt-4">
               <Link href="/dashboard/movimientos">
                 Ver Todos los Movimientos

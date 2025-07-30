@@ -7,41 +7,100 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/hooks/use-toast"
+import { useCategories } from "@/hooks/useCategories"
 import { 
   Plus, 
   Edit, 
   Trash2, 
   Tag,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Loader2
 } from "lucide-react"
 
 export default function CategoriasPage() {
   const [nombreCategoria, setNombreCategoria] = useState('')
-  const [tipoCategoria, setTipoCategoria] = useState<'ingreso' | 'egreso'>('egreso')
-  const [colorCategoria, setColorCategoria] = useState('#8b5cf6')
+  const [tipoCategoria, setTipoCategoria] = useState<'income' | 'expense'>('expense')
+  const [iconoCategoria, setIconoCategoria] = useState('🏷️')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const categorias = [
-    { id: 1, nombre: 'Alimentación', tipo: 'egreso', color: '#ef4444', movimientos: 15 },
-    { id: 2, nombre: 'Transporte', tipo: 'egreso', color: '#f97316', movimientos: 8 },
-    { id: 3, nombre: 'Salario', tipo: 'ingreso', color: '#22c55e', movimientos: 2 },
-    { id: 4, nombre: 'Entretenimiento', tipo: 'egreso', color: '#a855f7', movimientos: 5 },
-    { id: 5, nombre: 'Servicios', tipo: 'egreso', color: '#3b82f6', movimientos: 12 },
-    { id: 6, nombre: 'Freelance', tipo: 'ingreso', color: '#10b981', movimientos: 3 },
-  ]
+  const { toast } = useToast()
+  const { 
+    categories, 
+    loading, 
+    createCategory, 
+    updateCategory, 
+    deleteCategory,
+    getCategoriesByType 
+  } = useCategories()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const ingresos = getCategoriesByType('income')
+  const egresos = getCategoriesByType('expense')
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implementar guardado en Supabase
-    console.log({ nombreCategoria, tipoCategoria, colorCategoria })
-    setNombreCategoria('')
+    
+    if (!nombreCategoria.trim()) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa un nombre para la categoría",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    
+    try {
+      await createCategory({
+        name: nombreCategoria.trim(),
+        type: tipoCategoria,
+        icon: iconoCategoria
+      })
+
+      // Limpiar formulario
+      setNombreCategoria('')
+      setIconoCategoria('🏷️')
+
+      toast({
+        title: "¡Éxito!",
+        description: "Categoría creada correctamente",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear la categoría. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const coloresDisponibles = [
-    '#ef4444', '#f97316', '#f59e0b', '#eab308',
-    '#84cc16', '#22c55e', '#10b981', '#14b8a6',
-    '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
-    '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar la categoría "${name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteCategory(id)
+      toast({
+        title: "Categoría eliminada",
+        description: `La categoría "${name}" ha sido eliminada correctamente`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la categoría. Puede que tenga movimientos asociados.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const iconosDisponibles = [
+    '🏷️', '🍔', '🚗', '🏠', '💡', '🎮', '👕', '💊', 
+    '📚', '🎬', '✈️', '🏋️', '💰', '💼', '🎯', '🛒'
   ]
 
   return (
@@ -81,13 +140,13 @@ export default function CategoriasPage() {
 
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Tabs value={tipoCategoria} onValueChange={(value) => setTipoCategoria(value as 'ingreso' | 'egreso')}>
+                <Tabs value={tipoCategoria} onValueChange={(value) => setTipoCategoria(value as 'income' | 'expense')}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="ingreso" className="text-green-600">
+                    <TabsTrigger value="income" className="text-green-600">
                       <TrendingUp className="mr-2 h-4 w-4" />
                       Ingreso
                     </TabsTrigger>
-                    <TabsTrigger value="egreso" className="text-red-600">
+                    <TabsTrigger value="expense" className="text-red-600">
                       <TrendingDown className="mr-2 h-4 w-4" />
                       Egreso
                     </TabsTrigger>
@@ -96,25 +155,37 @@ export default function CategoriasPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Color</Label>
+                <Label>Icono</Label>
                 <div className="grid grid-cols-8 gap-2">
-                  {coloresDisponibles.map((color) => (
+                  {iconosDisponibles.map((icono) => (
                     <button
-                      key={color}
+                      key={icono}
                       type="button"
-                      className={`w-8 h-8 rounded-full border-2 ${
-                        colorCategoria === color ? 'border-gray-900 dark:border-gray-100' : 'border-gray-300'
+                      className={`w-8 h-8 rounded border-2 flex items-center justify-center text-lg ${
+                        iconoCategoria === icono 
+                          ? 'border-primary bg-primary/10' 
+                          : 'border-gray-300 hover:border-gray-400'
                       }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setColorCategoria(color)}
-                    />
+                      onClick={() => setIconoCategoria(icono)}
+                    >
+                      {icono}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                Crear Categoría
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Crear Categoría
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>
@@ -130,45 +201,92 @@ export default function CategoriasPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {categorias.map((categoria) => (
-                  <div key={categoria.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div 
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: categoria.color }}
-                      />
-                      <div>
-                        <p className="font-medium">{categoria.nombre}</p>
-                        <div className="flex items-center space-x-2">
-                          <Badge 
-                            variant={categoria.tipo === 'ingreso' ? 'default' : 'secondary'}
-                            className={categoria.tipo === 'ingreso' ? 'bg-green-600' : 'bg-red-600'}
-                          >
-                            {categoria.tipo === 'ingreso' ? (
-                              <TrendingUp className="mr-1 h-3 w-3" />
-                            ) : (
-                              <TrendingDown className="mr-1 h-3 w-3" />
-                            )}
-                            {categoria.tipo}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {categoria.movimientos} movimientos
-                          </span>
-                        </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2">Cargando categorías...</span>
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay categorías registradas</p>
+                  <p className="text-sm">Crea tu primera categoría usando el formulario</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Categorías de Ingresos */}
+                  {ingresos.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-green-600 mb-3 flex items-center">
+                        <TrendingUp className="mr-2 h-4 w-4" />
+                        Ingresos ({ingresos.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {ingresos.map((categoria) => (
+                          <div key={categoria.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-lg">{categoria.icon}</span>
+                              <div>
+                                <p className="font-medium">{categoria.name}</p>
+                                <Badge variant="default" className="bg-green-600">
+                                  <TrendingUp className="mr-1 h-3 w-3" />
+                                  Ingreso
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  )}
+
+                  {/* Categorías de Egresos */}
+                  {egresos.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-red-600 mb-3 flex items-center">
+                        <TrendingDown className="mr-2 h-4 w-4" />
+                        Egresos ({egresos.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {egresos.map((categoria) => (
+                          <div key={categoria.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-lg">{categoria.icon}</span>
+                              <div>
+                                <p className="font-medium">{categoria.name}</p>
+                                <Badge variant="secondary" className="bg-red-600 text-white">
+                                  <TrendingDown className="mr-1 h-3 w-3" />
+                                  Egreso
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
