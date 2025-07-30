@@ -1,140 +1,183 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Wallet, LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Wallet, 
+  Plus,
+  Target,
+  BarChart3
+} from "lucide-react"
+import Link from "next/link"
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [stats, setStats] = useState({
+    balance: 0,
+    income: 0,
+    expenses: 0,
+    budgetProgress: 0
+  })
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/auth/signin")
-        return
-      }
-      setUser(user)
-      setLoading(false)
-    }
-
-    getUser()
-  }, [router])
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-violet-600"></div>
-      </div>
-    )
-  }
+    // TODO: Fetch real data from Supabase
+    // For now, using mock data
+    setStats({
+      balance: 2500.00,
+      income: 3500.00,
+      expenses: 1000.00,
+      budgetProgress: 65
+    })
+  }, [])
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Wallet className="h-8 w-8 text-violet-600" />
-            <span className="text-xl font-bold">Galeon Money</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-muted-foreground">
-              Hola, {user?.user_metadata?.name || user?.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Cerrar Sesión
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Resumen de tu situación financiera actual
+        </p>
+      </div>
 
-      {/* Dashboard Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Bienvenido a tu panel de control financiero
-          </p>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              ${stats.balance.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              +2.5% desde el mes pasado
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumen Financiero</CardTitle>
-              <CardDescription>
-                Vista general de tus finanzas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-green-600">$0.00</p>
-              <p className="text-sm text-muted-foreground">Saldo actual</p>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ingresos del Mes</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              ${stats.income.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              +12% desde el mes pasado
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Ingresos del Mes</CardTitle>
-              <CardDescription>
-                Total de ingresos este mes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-blue-600">$0.00</p>
-              <p className="text-sm text-muted-foreground">Este mes</p>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gastos del Mes</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              ${stats.expenses.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              -5% desde el mes pasado
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Gastos del Mes</CardTitle>
-              <CardDescription>
-                Total de gastos este mes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-red-600">$0.00</p>
-              <p className="text-sm text-muted-foreground">Este mes</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Progreso Presupuesto</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.budgetProgress}%
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div 
+                className="bg-violet-600 h-2 rounded-full" 
+                style={{ width: `${stats.budgetProgress}%` }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <Card className="mt-8">
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
           <CardHeader>
-            <CardTitle>Próximos pasos</CardTitle>
+            <CardTitle>Acciones Rápidas</CardTitle>
             <CardDescription>
-              Configura tu cuenta para comenzar a gestionar tus finanzas
+              Gestiona tus finanzas de forma rápida
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button asChild className="w-full">
+              <Link href="/dashboard/movimientos">
+                <Plus className="mr-2 h-4 w-4" />
+                Registrar Movimiento
+              </Link>
+            </Button>
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/dashboard/presupuestos">
+                <Target className="mr-2 h-4 w-4" />
+                Ver Presupuestos
+              </Link>
+            </Button>
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/dashboard/estadisticas">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Ver Estadísticas
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Últimos Movimientos</CardTitle>
+            <CardDescription>
+              Tus transacciones más recientes
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-violet-600 rounded-full"></div>
-                <span>Crear categorías de ingresos y gastos</span>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Supermercado</p>
+                  <p className="text-sm text-muted-foreground">Alimentación</p>
+                </div>
+                <span className="text-red-600 font-medium">-$45.50</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                <span>Registrar tu primer movimiento</span>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Salario</p>
+                  <p className="text-sm text-muted-foreground">Trabajo</p>
+                </div>
+                <span className="text-green-600 font-medium">+$2,500.00</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                <span>Configurar presupuestos</span>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Gasolina</p>
+                  <p className="text-sm text-muted-foreground">Transporte</p>
+                </div>
+                <span className="text-red-600 font-medium">-$60.00</span>
               </div>
             </div>
+            <Button variant="outline" asChild className="w-full mt-4">
+              <Link href="/dashboard/movimientos">
+                Ver Todos los Movimientos
+              </Link>
+            </Button>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   )
 }
