@@ -19,8 +19,28 @@ import {
   DollarSign,
   Save,
   LogOut,
-  Trash2
+  Trash2,
+  Users,
+  Plus,
+  UserPlus,
+  Crown,
+  X
 } from "lucide-react"
+
+interface ContextMember {
+  id: string
+  email: string
+  name: string
+  role: 'owner' | 'member'
+  joined_at: string
+}
+
+interface FinancialContext {
+  id: string
+  name: string
+  description: string
+  created_at: string
+}
 
 export default function AjustesPage() {
   const [user, setUser] = useState<any>(null)
@@ -31,6 +51,14 @@ export default function AjustesPage() {
   const [notificaciones, setNotificaciones] = useState(true)
   const [notificacionesEmail, setNotificacionesEmail] = useState(false)
   const [notificacionesPresupuesto, setNotificacionesPresupuesto] = useState(true)
+  
+  // Estados para contexto financiero
+  const [currentContext, setCurrentContext] = useState<FinancialContext | null>(null)
+  const [contextMembers, setContextMembers] = useState<ContextMember[]>([])
+  const [newMemberEmail, setNewMemberEmail] = useState('')
+  const [contextName, setContextName] = useState('')
+  const [contextDescription, setContextDescription] = useState('')
+  const [isLoadingContext, setIsLoadingContext] = useState(false)
 
   useEffect(() => {
     const getUser = async () => {
@@ -39,10 +67,47 @@ export default function AjustesPage() {
         setUser(user)
         setNombre(user.user_metadata?.name || '')
         setEmail(user.email || '')
+        loadFinancialContext()
       }
     }
     getUser()
   }, [])
+
+  const loadFinancialContext = async () => {
+    try {
+      // Cargar contexto financiero actual (mock data por ahora)
+      const mockContext = {
+        id: '1',
+        name: 'Finanzas Familiares',
+        description: 'Contexto financiero compartido',
+        created_at: new Date().toISOString()
+      }
+      
+      const mockMembers = [
+        {
+          id: '1',
+          email: 'usuario@ejemplo.com',
+          name: 'Usuario Principal',
+          role: 'owner' as const,
+          joined_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          email: 'pareja@ejemplo.com',
+          name: 'Pareja',
+          role: 'member' as const,
+          joined_at: new Date().toISOString()
+        }
+      ]
+      
+      setCurrentContext(mockContext)
+      setContextMembers(mockMembers)
+      setContextName(mockContext.name)
+      setContextDescription(mockContext.description)
+    } catch (error) {
+      console.error('Error loading financial context:', error)
+    }
+  }
 
   const handleSaveProfile = async () => {
     try {
@@ -54,6 +119,57 @@ export default function AjustesPage() {
     } catch (error) {
       console.error('Error updating profile:', error)
       alert('Error al actualizar el perfil')
+    }
+  }
+
+  const handleUpdateContext = async () => {
+    setIsLoadingContext(true)
+    try {
+      // TODO: Implementar actualización real del contexto
+      alert('Contexto actualizado correctamente')
+    } catch (error) {
+      console.error('Error updating context:', error)
+      alert('Error al actualizar el contexto')
+    } finally {
+      setIsLoadingContext(false)
+    }
+  }
+
+  const handleInviteMember = async () => {
+    if (!newMemberEmail.trim()) return
+    
+    setIsLoadingContext(true)
+    try {
+      // TODO: Implementar invitación real
+      const newMember = {
+        id: Date.now().toString(),
+        email: newMemberEmail,
+        name: newMemberEmail.split('@')[0],
+        role: 'member' as const,
+        joined_at: new Date().toISOString()
+      }
+      
+      setContextMembers([...contextMembers, newMember])
+      setNewMemberEmail('')
+      alert('Invitación enviada correctamente')
+    } catch (error) {
+      console.error('Error inviting member:', error)
+      alert('Error al enviar la invitación')
+    } finally {
+      setIsLoadingContext(false)
+    }
+  }
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!confirm('¿Estás seguro de que quieres remover a este miembro?')) return
+    
+    try {
+      // TODO: Implementar remoción real
+      setContextMembers(contextMembers.filter(m => m.id !== memberId))
+      alert('Miembro removido correctamente')
+    } catch (error) {
+      console.error('Error removing member:', error)
+      alert('Error al remover el miembro')
     }
   }
 
@@ -121,6 +237,115 @@ export default function AjustesPage() {
               <Save className="mr-2 h-4 w-4" />
               Guardar Cambios
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Contexto Financiero Compartido */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="mr-2 h-5 w-5" />
+              Contexto Financiero
+            </CardTitle>
+            <CardDescription>
+              Gestiona las finanzas compartidas con otras personas
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="contextName">Nombre del contexto</Label>
+              <Input
+                id="contextName"
+                value={contextName}
+                onChange={(e) => setContextName(e.target.value)}
+                placeholder="Ej: Finanzas Familiares"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="contextDescription">Descripción</Label>
+              <Input
+                id="contextDescription"
+                value={contextDescription}
+                onChange={(e) => setContextDescription(e.target.value)}
+                placeholder="Descripción opcional"
+              />
+            </div>
+
+            <Button 
+              onClick={handleUpdateContext} 
+              disabled={isLoadingContext}
+              className="w-full"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isLoadingContext ? 'Guardando...' : 'Actualizar Contexto'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Miembros del Contexto */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <UserPlus className="mr-2 h-5 w-5" />
+              Miembros del Contexto
+            </CardTitle>
+            <CardDescription>
+              Invita a otras personas para que puedan gestionar las finanzas contigo
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Agregar nuevo miembro */}
+            <div className="flex gap-2">
+              <Input
+                value={newMemberEmail}
+                onChange={(e) => setNewMemberEmail(e.target.value)}
+                placeholder="Email del nuevo miembro"
+                type="email"
+              />
+              <Button 
+                onClick={handleInviteMember}
+                disabled={isLoadingContext || !newMemberEmail.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Separator />
+
+            {/* Lista de miembros */}
+            <div className="space-y-3">
+              {contextMembers.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
+                      {member.role === 'owner' && (
+                        <Crown className="h-4 w-4 text-yellow-500" />
+                      )}
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-sm text-muted-foreground">{member.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs bg-muted px-2 py-1 rounded">
+                      {member.role === 'owner' ? 'Propietario' : 'Miembro'}
+                    </span>
+                    {member.role !== 'owner' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveMember(member.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -240,7 +465,7 @@ export default function AjustesPage() {
         </Card>
 
         {/* Seguridad y Cuenta */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Shield className="mr-2 h-5 w-5" />
@@ -251,14 +476,16 @@ export default function AjustesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full">
-              Cambiar Contraseña
-            </Button>
-            
-            <Button variant="outline" onClick={handleSignOut} className="w-full">
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar Sesión
-            </Button>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Button variant="outline" className="w-full">
+                Cambiar Contraseña
+              </Button>
+              
+              <Button variant="outline" onClick={handleSignOut} className="w-full">
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+              </Button>
+            </div>
 
             <Separator />
 
