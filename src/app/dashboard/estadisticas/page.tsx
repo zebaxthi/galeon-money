@@ -1,101 +1,87 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
-  Area,
-  AreaChart
+  AreaChart,
+  Area
 } from 'recharts'
-import { 
-  Calendar,
-  TrendingUp,
-  TrendingDown,
-  DollarSign
-} from "lucide-react"
+import { useStatistics } from '@/hooks/useStatistics'
 
 export default function EstadisticasPage() {
-  const [periodo, setPeriodo] = useState('mes')
+  const [periodo, setPeriodo] = useState<'month' | 'year'>('month')
+  const { data, loading, error } = useStatistics(periodo)
 
-  // Datos de ejemplo para las gráficas
-  const datosIngresoEgreso = [
-    { mes: 'Ene', ingresos: 3500, egresos: 2800 },
-    { mes: 'Feb', ingresos: 3200, egresos: 2600 },
-    { mes: 'Mar', ingresos: 3800, egresos: 3100 },
-    { mes: 'Abr', ingresos: 3600, egresos: 2900 },
-    { mes: 'May', ingresos: 4000, egresos: 3200 },
-    { mes: 'Jun', ingresos: 3700, egresos: 2800 },
-  ]
-
-  const datosCategorias = [
-    { nombre: 'Alimentación', valor: 800, color: '#ef4444' },
-    { nombre: 'Transporte', valor: 400, color: '#f97316' },
-    { nombre: 'Entretenimiento', valor: 300, color: '#a855f7' },
-    { nombre: 'Servicios', valor: 600, color: '#3b82f6' },
-    { nombre: 'Otros', valor: 200, color: '#6b7280' },
-  ]
-
-  const tendenciaMensual = [
-    { mes: 'Ene', saldo: 700 },
-    { mes: 'Feb', saldo: 1300 },
-    { mes: 'Mar', saldo: 1000 },
-    { mes: 'Abr', saldo: 1700 },
-    { mes: 'May', saldo: 2500 },
-    { mes: 'Jun', saldo: 3400 },
-  ]
-
-  const resumenEstadisticas = {
-    totalIngresos: 22800,
-    totalEgresos: 17400,
-    saldoNeto: 5400,
-    promedioMensual: 900,
-    mejorMes: 'Mayo',
-    categoriaTopGasto: 'Alimentación'
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Estadísticas</h1>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-red-600">Error al cargar estadísticas: {error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const { resumenEstadisticas, datosIngresoEgreso, datosCategorias, tendenciaMensual } = data
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Estadísticas</h1>
-          <p className="text-muted-foreground">
-            Análisis detallado de tus finanzas
-          </p>
-        </div>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Estadísticas</h1>
+        
+        {/* Selector de Período */}
         <div className="flex space-x-2">
           <Button 
-            variant={periodo === 'semana' ? 'default' : 'outline'} 
+            variant={periodo === 'month' ? 'default' : 'outline'} 
             size="sm"
-            onClick={() => setPeriodo('semana')}
+            onClick={() => setPeriodo('month')}
           >
-            Semana
+            6 Meses
           </Button>
           <Button 
-            variant={periodo === 'mes' ? 'default' : 'outline'} 
+            variant={periodo === 'year' ? 'default' : 'outline'} 
             size="sm"
-            onClick={() => setPeriodo('mes')}
+            onClick={() => setPeriodo('year')}
           >
-            Mes
-          </Button>
-          <Button 
-            variant={periodo === 'año' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setPeriodo('año')}
-          >
-            Año
+            12 Meses
           </Button>
         </div>
       </div>
@@ -112,7 +98,7 @@ export default function EstadisticasPage() {
               ${resumenEstadisticas.totalIngresos.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              Últimos 6 meses
+              Últimos {periodo === 'month' ? '6 meses' : '12 meses'}
             </p>
           </CardContent>
         </Card>
@@ -127,7 +113,7 @@ export default function EstadisticasPage() {
               ${resumenEstadisticas.totalEgresos.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              Últimos 6 meses
+              Últimos {periodo === 'month' ? '6 meses' : '12 meses'}
             </p>
           </CardContent>
         </Card>
@@ -180,16 +166,22 @@ export default function EstadisticasPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={datosIngresoEgreso}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
-                  <Bar dataKey="ingresos" fill="#22c55e" name="Ingresos" />
-                  <Bar dataKey="egresos" fill="#ef4444" name="Egresos" />
-                </BarChart>
-              </ResponsiveContainer>
+              {datosIngresoEgreso.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={datosIngresoEgreso}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, '']} />
+                    <Bar dataKey="ingresos" fill="#22c55e" name="Ingresos" />
+                    <Bar dataKey="egresos" fill="#ef4444" name="Egresos" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                  No hay datos suficientes para mostrar la gráfica
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -204,23 +196,29 @@ export default function EstadisticasPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={datosCategorias}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      dataKey="valor"
-                      label={({ nombre, percent }) => `${nombre} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {datosCategorias.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Gasto']} />
-                  </PieChart>
-                </ResponsiveContainer>
+                {datosCategorias.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={datosCategorias}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        dataKey="valor"
+                        label={({ nombre, percent }) => `${nombre} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {datosCategorias.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Gasto']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    No hay gastos por categorías para mostrar
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -232,20 +230,26 @@ export default function EstadisticasPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {datosCategorias.map((categoria, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: categoria.color }}
-                        />
-                        <span className="font-medium">{categoria.nombre}</span>
+                {datosCategorias.length > 0 ? (
+                  <div className="space-y-4">
+                    {datosCategorias.map((categoria, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div 
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: categoria.color }}
+                          />
+                          <span className="font-medium">{categoria.nombre}</span>
+                        </div>
+                        <span className="font-bold">${categoria.valor.toLocaleString()}</span>
                       </div>
-                      <span className="font-bold">${categoria.valor.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    No hay categorías para mostrar
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -260,21 +264,27 @@ export default function EstadisticasPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={tendenciaMensual}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Saldo']} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="saldo" 
-                    stroke="#8b5cf6" 
-                    fill="#8b5cf6" 
-                    fillOpacity={0.3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {tendenciaMensual.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <AreaChart data={tendenciaMensual}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Saldo']} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="saldo" 
+                      stroke="#8b5cf6" 
+                      fill="#8b5cf6" 
+                      fillOpacity={0.3}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                  No hay datos suficientes para mostrar la tendencia
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

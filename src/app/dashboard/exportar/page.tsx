@@ -1,19 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/hooks/use-toast"
 import { 
   Download, 
   FileSpreadsheet, 
   Calendar,
   Filter,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from "lucide-react"
-import * as XLSX from 'xlsx'
+import { useExport } from "@/hooks/useExport"
+import { useMovements } from "@/hooks/useMovements"
 
 export default function ExportarPage() {
   const [fechaInicio, setFechaInicio] = useState('')
@@ -23,54 +26,44 @@ export default function ExportarPage() {
   const [incluirPresupuestos, setIncluirPresupuestos] = useState(true)
   const [incluirEstadisticas, setIncluirEstadisticas] = useState(false)
 
-  // Datos de ejemplo para exportar
-  const datosMovimientos = [
-    { fecha: '2024-01-15', tipo: 'Egreso', categoria: 'Alimentación', descripcion: 'Supermercado', monto: -45.50 },
-    { fecha: '2024-01-15', tipo: 'Ingreso', categoria: 'Trabajo', descripcion: 'Salario', monto: 2500.00 },
-    { fecha: '2024-01-14', tipo: 'Egreso', categoria: 'Transporte', descripcion: 'Gasolina', monto: -60.00 },
-    { fecha: '2024-01-13', tipo: 'Egreso', categoria: 'Entretenimiento', descripcion: 'Cine', monto: -25.00 },
-    { fecha: '2024-01-12', tipo: 'Egreso', categoria: 'Servicios', descripcion: 'Internet', monto: -50.00 },
-  ]
+  const { generateExport, loading, error } = useExport()
+  const { movements } = useMovements()
+  const { toast } = useToast()
 
-  const datosResumen = [
-    { categoria: 'Alimentación', ingresos: 0, egresos: 245.50, saldo: -245.50 },
-    { categoria: 'Trabajo', ingresos: 2500.00, egresos: 0, saldo: 2500.00 },
-    { categoria: 'Transporte', ingresos: 0, egresos: 180.00, saldo: -180.00 },
-    { categoria: 'Entretenimiento', ingresos: 0, egresos: 125.00, saldo: -125.00 },
-    { categoria: 'Servicios', ingresos: 0, egresos: 200.00, saldo: -200.00 },
-  ]
+  // Establecer fechas por defecto (último mes)
+  useEffect(() => {
+    const today = new Date()
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+    
+    setFechaInicio(lastMonth.toISOString().split('T')[0])
+    setFechaFin(endOfLastMonth.toISOString().split('T')[0])
+  }, [])
 
-  const exportarExcel = () => {
-    const workbook = XLSX.utils.book_new()
+  const handleExport = async () => {
+    try {
+      const result = await generateExport(
+        fechaInicio,
+        fechaFin,
+        tipoReporte as 'completo' | 'movimientos' | 'resumen',
+        {
+          incluirCategorias,
+          incluirPresupuestos,
+          incluirEstadisticas
+        }
+      )
 
-    // Hoja de movimientos detallados
-    if (tipoReporte === 'completo' || tipoReporte === 'movimientos') {
-      const wsMovimientos = XLSX.utils.json_to_sheet(datosMovimientos)
-      XLSX.utils.book_append_sheet(workbook, wsMovimientos, 'Movimientos')
+      toast({
+        title: "Exportación exitosa",
+        description: `Se ha descargado el archivo: ${result.fileName}`,
+      })
+    } catch (err) {
+      toast({
+        title: "Error en la exportación",
+        description: err instanceof Error ? err.message : "Error desconocido",
+        variant: "destructive"
+      })
     }
-
-    // Hoja de resumen por categorías
-    if (tipoReporte === 'completo' || tipoReporte === 'resumen') {
-      const wsResumen = XLSX.utils.json_to_sheet(datosResumen)
-      XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen por Categoría')
-    }
-
-    // Hoja de estadísticas (si está seleccionada)
-    if (incluirEstadisticas) {
-      const estadisticas = [
-        { concepto: 'Total Ingresos', valor: 2500.00 },
-        { concepto: 'Total Egresos', valor: 750.50 },
-        { concepto: 'Saldo Neto', valor: 1749.50 },
-        { concepto: 'Promedio Diario Gastos', valor: 25.02 },
-      ]
-      const wsEstadisticas = XLSX.utils.json_to_sheet(estadisticas)
-      XLSX.utils.book_append_sheet(workbook, wsEstadisticas, 'Estadísticas')
-    }
-
-    // Generar y descargar el archivo
-    const fechaActual = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `galeon-money-reporte-${fechaActual}.xlsx`
-    XLSX.writeFile(workbook, nombreArchivo)
   }
 
   const reportesDisponibles = [
@@ -96,6 +89,23 @@ export default function ExportarPage() {
       color: 'text-green-600'
     }
   ]
+
+  // Filtrar movimientos por rango de fechas para vista previa
+  const movimientosFiltrados = movements.filter(movement => {
+    if (!fechaInicio || !fechaFin) return true
+    const movementDate = new Date(movement.movement_date)
+    const startDate = new Date(fechaInicio)
+    const endDate = new Date(fechaFin)
+    return movementDate >= startDate && movementDate <= endDate
+  })
+
+  const totalIngresos = movimientosFiltrados
+    .filter(m => m.type === 'income')
+    .reduce((sum, m) => sum + Number(m.amount), 0)
+
+  const totalEgresos = movimientosFiltrados
+    .filter(m => m.type === 'expense')
+    .reduce((sum, m) => sum + Number(m.amount), 0)
 
   return (
     <div className="space-y-6">
@@ -208,9 +218,29 @@ export default function ExportarPage() {
               </div>
             </div>
 
-            <Button onClick={exportarExcel} className="w-full" size="lg">
-              <Download className="mr-2 h-4 w-4" />
-              Exportar a Excel
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+
+            <Button 
+              onClick={handleExport} 
+              className="w-full" 
+              size="lg"
+              disabled={loading || !fechaInicio || !fechaFin}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando reporte...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar a Excel
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -233,26 +263,34 @@ export default function ExportarPage() {
                 <div className="space-y-2 text-sm">
                   <p><strong>Período:</strong> {fechaInicio || 'No especificado'} - {fechaFin || 'No especificado'}</p>
                   <p><strong>Tipo:</strong> {reportesDisponibles.find(r => r.id === tipoReporte)?.nombre}</p>
-                  <p><strong>Movimientos:</strong> {datosMovimientos.length} registros</p>
-                  <p><strong>Categorías:</strong> {datosResumen.length} categorías</p>
+                  <p><strong>Movimientos:</strong> {movimientosFiltrados.length} registros</p>
+                  <p><strong>Total Ingresos:</strong> <span className="text-green-600">${totalIngresos.toLocaleString()}</span></p>
+                  <p><strong>Total Egresos:</strong> <span className="text-red-600">${totalEgresos.toLocaleString()}</span></p>
+                  <p><strong>Saldo Neto:</strong> <span className={totalIngresos - totalEgresos >= 0 ? 'text-green-600' : 'text-red-600'}>${(totalIngresos - totalEgresos).toLocaleString()}</span></p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <h4 className="font-medium">Últimos Movimientos</h4>
-                {datosMovimientos.slice(0, 3).map((movimiento, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 border rounded">
-                    <div>
-                      <p className="font-medium text-sm">{movimiento.descripcion}</p>
-                      <p className="text-xs text-muted-foreground">{movimiento.categoria}</p>
+                {movimientosFiltrados.length > 0 ? (
+                  movimientosFiltrados.slice(0, 3).map((movimiento, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 border rounded">
+                      <div>
+                        <p className="font-medium text-sm">{movimiento.description || 'Sin descripción'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {movimiento.categories?.name || 'Sin categoría'} • {movimiento.movement_date}
+                        </p>
+                      </div>
+                      <span className={`font-bold text-sm ${
+                        movimiento.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {movimiento.type === 'income' ? '+' : '-'}${Number(movimiento.amount).toLocaleString()}
+                      </span>
                     </div>
-                    <span className={`font-bold text-sm ${
-                      movimiento.monto > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      ${Math.abs(movimiento.monto).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-sm">No hay movimientos en el período seleccionado</p>
+                )}
               </div>
             </div>
           </CardContent>
