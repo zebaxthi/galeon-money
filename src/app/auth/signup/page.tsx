@@ -1,26 +1,34 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Mail, Lock, User, Eye, EyeOff, Wallet, ArrowLeft, CheckCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { 
+  ArrowLeft, 
+  Wallet, 
+  Mail, 
+  Lock, 
+  User, 
+  Eye, 
+  EyeOff, 
+  CheckCircle 
+} from "lucide-react"
 
 export default function SignUpPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
+  // Removed unused router variable
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()

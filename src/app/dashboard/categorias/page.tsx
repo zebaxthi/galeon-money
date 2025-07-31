@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useCategories } from "@/hooks/useCategories"
 import { 
   Plus, 
-  Edit, 
   Trash2, 
   Tag,
   TrendingUp,
@@ -30,7 +29,6 @@ export default function CategoriasPage() {
     categories, 
     loading, 
     createCategory, 
-    updateCategory, 
     deleteCategory,
     getCategoriesByType 
   } = useCategories()
@@ -67,7 +65,7 @@ export default function CategoriasPage() {
         title: "¡Éxito!",
         description: "Categoría creada correctamente",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "No se pudo crear la categoría. Inténtalo de nuevo.",
@@ -89,7 +87,7 @@ export default function CategoriasPage() {
         title: "Categoría eliminada",
         description: `La categoría "${name}" ha sido eliminada correctamente`,
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "No se pudo eliminar la categoría. Puede que tenga movimientos asociados.",
