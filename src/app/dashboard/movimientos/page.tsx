@@ -16,7 +16,6 @@ import {
   Minus, 
   Calendar,
   DollarSign,
-  Tag,
   FileText,
   Loader2
 } from "lucide-react"

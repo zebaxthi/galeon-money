@@ -15,10 +15,8 @@ import {
   Plus, 
   Target, 
   DollarSign,
-  Calendar,
   AlertTriangle,
   CheckCircle,
-  Edit,
   Trash2,
   Loader2
 } from "lucide-react"
@@ -32,7 +30,7 @@ export default function PresupuestosPage() {
 
   const { toast } = useToast()
   const { budgets, loading: budgetsLoading, createBudget, deleteBudget } = useBudgets()
-  const { budgetProgress, loading: progressLoading } = useBudgetProgress()
+  const { budgetProgress } = useBudgetProgress()
   const { categories, getCategoriesByType } = useCategories()
 
   const expenseCategories = getCategoriesByType('expense')
@@ -53,7 +51,7 @@ export default function PresupuestosPage() {
     
     try {
       const startDate = new Date()
-      let endDate = new Date()
+      const endDate = new Date()
       
       // Calcular fecha de fin según el período
       switch (periodoPresupuesto) {
@@ -86,7 +84,7 @@ export default function PresupuestosPage() {
         title: "¡Éxito!",
         description: "Presupuesto creado correctamente",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "No se pudo crear el presupuesto. Inténtalo de nuevo.",
@@ -108,20 +106,13 @@ export default function PresupuestosPage() {
         title: "Presupuesto eliminado",
         description: `El presupuesto "${name}" ha sido eliminado correctamente`,
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "No se pudo eliminar el presupuesto. Inténtalo de nuevo.",
         variant: "destructive"
       })
     }
-  }
-
-  const getProgressColor = (spent: number, limit: number) => {
-    const percentage = (spent / limit) * 100
-    if (percentage >= 100) return 'bg-red-500'
-    if (percentage >= 80) return 'bg-yellow-500'
-    return 'bg-green-500'
   }
 
   const getStatusIcon = (spent: number, limit: number) => {

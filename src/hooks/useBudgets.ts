@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/providers/auth-provider'
 import { BudgetService } from '@/lib/services/budgets'
-import type { Budget, CreateBudgetData } from '@/lib/types'
+import type { CreateBudgetData } from '@/lib/types'
 
 export function useBudgets(contextId?: string) {
   const { user } = useAuth()

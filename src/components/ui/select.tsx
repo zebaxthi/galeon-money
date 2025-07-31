@@ -89,7 +89,7 @@ const SelectValue = React.forwardRef<
     placeholder?: string
   }
 >(({ className, placeholder, ...props }, ref) => {
-  const { value, displayValue } = useSelectContext()
+  const { displayValue } = useSelectContext()
   
   return (
     <span
