@@ -1,101 +1,77 @@
-import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/providers/auth-provider'
 import { MovementService } from '@/lib/services/movements'
+import { useQueryInvalidation } from './useQueryInvalidation'
 import type { Movement, CreateMovementData } from '@/lib/types'
 
 export function useMovements(contextId?: string, limit?: number) {
-  const [movements, setMovements] = useState<Movement[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const { invalidateMovementRelatedQueries } = useQueryInvalidation()
 
-  const loadMovements = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await MovementService.getMovements(contextId, limit)
-      setMovements(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading movements')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    data: movements = [],
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['movements', user?.id, contextId, limit],
+    queryFn: () => user ? MovementService.getMovements(user.id, contextId, limit) : [],
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutos
+  })
 
-  useEffect(() => {
-    loadMovements()
-  }, [contextId, limit])
+  const createMovementMutation = useMutation({
+    mutationFn: (movementData: CreateMovementData) => 
+      user ? MovementService.createMovement(user.id, movementData) : Promise.reject('No user'),
+    onSuccess: invalidateMovementRelatedQueries,
+  })
 
-  const createMovement = async (movementData: CreateMovementData) => {
-    try {
-      setError(null)
-      const newMovement = await MovementService.createMovement(movementData)
-      setMovements(prev => [newMovement, ...prev])
-      return newMovement
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error creating movement')
-      throw err
-    }
-  }
+  const updateMovementMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateMovementData> }) =>
+      MovementService.updateMovement(id, updates),
+    onSuccess: invalidateMovementRelatedQueries,
+  })
 
-  const updateMovement = async (id: string, updates: Partial<CreateMovementData>) => {
-    try {
-      setError(null)
-      const updatedMovement = await MovementService.updateMovement(id, updates)
-      setMovements(prev => prev.map(m => m.id === id ? updatedMovement : m))
-      return updatedMovement
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error updating movement')
-      throw err
-    }
-  }
-
-  const deleteMovement = async (id: string) => {
-    try {
-      setError(null)
-      await MovementService.deleteMovement(id)
-      setMovements(prev => prev.filter(m => m.id !== id))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error deleting movement')
-      throw err
-    }
-  }
+  const deleteMovementMutation = useMutation({
+    mutationFn: (id: string) => MovementService.deleteMovement(id),
+    onSuccess: invalidateMovementRelatedQueries,
+  })
 
   return {
     movements,
     loading,
-    error,
-    createMovement,
-    updateMovement,
-    deleteMovement,
-    refetch: loadMovements
+    error: error as Error | null,
+    createMovement: createMovementMutation.mutate,
+    updateMovement: updateMovementMutation.mutate,
+    deleteMovement: deleteMovementMutation.mutate,
+    isCreating: createMovementMutation.isPending,
+    isUpdating: updateMovementMutation.isPending,
+    isDeleting: deleteMovementMutation.isPending,
   }
 }
 
 export function useMovementStats(contextId?: string) {
-  const [stats, setStats] = useState({
-    totalIncome: 0,
-    totalExpenses: 0,
-    balance: 0,
-    movementsCount: 0
+  const { user } = useAuth()
+
+  const {
+    data: stats = {
+      totalIncome: 0,
+      totalExpenses: 0,
+      balance: 0,
+      movementsCount: 0
+    },
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['movement-stats', user?.id, contextId],
+    queryFn: () => user ? MovementService.getMovementStats(user.id, contextId) : null,
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutos
   })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await MovementService.getMovementStats(contextId)
-        setStats(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading stats')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadStats()
-  }, [contextId])
-
-  return { stats, loading, error }
+  return { 
+    stats, 
+    loading, 
+    error: error as Error | null 
+  }
 }

@@ -1,88 +1,75 @@
-import { useState, useEffect } from 'react'
+"use client"
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/providers/auth-provider'
 import { FinancialContextService } from '@/lib/services/financial-contexts'
-import type { FinancialContext, ContextMember } from '@/lib/types'
+import type { UpdateFinancialContextData, InviteMemberData } from '@/lib/types'
 
 export function useFinancialContext() {
-  const [context, setContext] = useState<FinancialContext | null>(null)
-  const [members, setMembers] = useState<ContextMember[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
 
-  const loadContext = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const currentContext = await FinancialContextService.getCurrentContext()
-      setContext(currentContext)
-      
-      if (currentContext) {
-        const contextMembers = await FinancialContextService.getContextMembers(currentContext.id)
-        setMembers(contextMembers)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading context')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Obtener contexto financiero actual
+  const {
+    data: context,
+    isLoading: contextLoading,
+    error: contextError
+  } = useQuery({
+    queryKey: ['current-context', user?.id],
+    queryFn: () => user ? FinancialContextService.getCurrentContext(user.id) : null,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
 
-  useEffect(() => {
-    loadContext()
-  }, [])
+  // Obtener miembros del contexto
+  const {
+    data: members = [],
+    isLoading: membersLoading,
+    error: membersError
+  } = useQuery({
+    queryKey: ['context-members', context?.id],
+    queryFn: () => context ? FinancialContextService.getContextMembers(context.id) : [],
+    enabled: !!context,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
 
-  const updateContext = async (updates: { name?: string; description?: string }) => {
-    if (!context) throw new Error('No context available')
-    
-    try {
-      setError(null)
-      const updatedContext = await FinancialContextService.updateContext(context.id, updates)
-      setContext(updatedContext)
-      return updatedContext
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error updating context')
-      throw err
-    }
-  }
+  // Mutación para actualizar contexto
+  const updateContextMutation = useMutation({
+    mutationFn: ({ contextId, data }: { contextId: string; data: UpdateFinancialContextData }) =>
+      FinancialContextService.updateContext(contextId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-context'] })
+    },
+  })
 
-  const inviteMember = async (email: string) => {
-    if (!context) throw new Error('No context available')
-    
-    try {
-      setError(null)
-      const newMember = await FinancialContextService.inviteMember({
-        email,
-        context_id: context.id
-      })
-      setMembers(prev => [...prev, newMember])
-      return newMember
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error inviting member')
-      throw err
-    }
-  }
+  // Mutación para invitar miembro
+  const inviteMemberMutation = useMutation({
+    mutationFn: ({ contextId, data }: { contextId: string; data: InviteMemberData }) =>
+      FinancialContextService.inviteMember(contextId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['context-members'] })
+    },
+  })
 
-  const removeMember = async (userId: string) => {
-    if (!context) throw new Error('No context available')
-    
-    try {
-      setError(null)
-      await FinancialContextService.removeMember(context.id, userId)
-      setMembers(prev => prev.filter(member => member.user_id !== userId))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error removing member')
-      throw err
-    }
-  }
+  // Mutación para remover miembro
+  const removeMemberMutation = useMutation({
+    mutationFn: ({ contextId, userId }: { contextId: string; userId: string }) =>
+      FinancialContextService.removeMember(contextId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['context-members'] })
+    },
+  })
 
   return {
     context,
     members,
-    loading,
-    error,
-    updateContext,
-    inviteMember,
-    removeMember,
-    refetch: loadContext
+    loading: contextLoading || membersLoading,
+    error: contextError || membersError,
+    updateContext: updateContextMutation.mutate,
+    inviteMember: inviteMemberMutation.mutate,
+    removeMember: removeMemberMutation.mutate,
+    isUpdating: updateContextMutation.isPending,
+    isInviting: inviteMemberMutation.isPending,
+    isRemoving: removeMemberMutation.isPending,
   }
 }

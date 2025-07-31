@@ -2,10 +2,7 @@ import { supabase } from '@/lib/supabase'
 import type { Movement, CreateMovementData } from '@/lib/types'
 
 export class MovementService {
-  static async getMovements(contextId?: string, limit?: number): Promise<Movement[]> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async getMovements(userId: string, contextId?: string, limit?: number): Promise<Movement[]> {
     let query = supabase
       .from('movements')
       .select(`
@@ -23,7 +20,7 @@ export class MovementService {
           email
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('movement_date', { ascending: false })
       .order('created_at', { ascending: false })
 
@@ -45,10 +42,7 @@ export class MovementService {
     })) || []
   }
 
-  static async getMovementsByDateRange(startDate: string, endDate: string, contextId?: string): Promise<Movement[]> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async getMovementsByDateRange(userId: string, startDate: string, endDate: string, contextId?: string): Promise<Movement[]> {
     let query = supabase
       .from('movements')
       .select(`
@@ -66,7 +60,7 @@ export class MovementService {
           email
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('movement_date', startDate)
       .lte('movement_date', endDate)
       .order('movement_date', { ascending: false })
@@ -85,16 +79,13 @@ export class MovementService {
     })) || []
   }
 
-  static async createMovement(movementData: CreateMovementData): Promise<Movement> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async createMovement(userId: string, movementData: CreateMovementData): Promise<Movement> {
     const { data, error } = await supabase
       .from('movements')
       .insert({
         ...movementData,
-        user_id: user.id,
-        created_by: user.id,
+        user_id: userId,
+        created_by: userId,
         movement_date: movementData.movement_date || new Date().toISOString().split('T')[0]
       })
       .select(`
@@ -161,16 +152,14 @@ export class MovementService {
     if (error) throw error
   }
 
-  static async getMovementStats(contextId?: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async getMovementStats(userId: string, contextId?: string) {
     // Get current month movements
     const currentDate = new Date()
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
     const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
 
     const movements = await this.getMovementsByDateRange(
+      userId,
       firstDayOfMonth.toISOString().split('T')[0],
       lastDayOfMonth.toISOString().split('T')[0],
       contextId
@@ -194,31 +183,37 @@ export class MovementService {
     }
   }
 
-  static async getDetailedStats(period: 'month' | 'year' = 'month', contextId?: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  // Método optimizado que obtiene todos los datos de estadísticas en una sola llamada
+  static async getStatisticsData(userId: string, period: 'month' | 'year' = 'month', contextId?: string) {
     const currentDate = new Date()
     let startDate: Date
     let endDate: Date
+    let monthsCount: number
 
     if (period === 'month') {
       // Last 6 months
       startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
       endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      monthsCount = 6
     } else {
       // Last 12 months
       startDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1)
       endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      monthsCount = 12
     }
 
+    // Single database call to get all movements
     const movements = await this.getMovementsByDateRange(
+      userId,
       startDate.toISOString().split('T')[0],
       endDate.toISOString().split('T')[0],
       contextId
     )
 
-    // Calculate totals
+    // Process all statistics from the same dataset
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    
+    // 1. Detailed Stats
     const totalIncome = movements
       .filter(m => m.type === 'income')
       .reduce((sum, m) => sum + Number(m.amount), 0)
@@ -228,72 +223,37 @@ export class MovementService {
       .reduce((sum, m) => sum + Number(m.amount), 0)
 
     const balance = totalIncome - totalExpenses
-    const averageMonthly = balance / (period === 'month' ? 6 : 12)
+    const averageMonthly = balance / monthsCount
 
-    return {
-      totalIncome,
-      totalExpenses,
-      balance,
-      averageMonthly,
-      movementsCount: movements.length
-    }
-  }
-
-  static async getMonthlyComparison(contextId?: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
-    const currentDate = new Date()
+    // 2. Monthly Comparison
     const monthlyData = []
-
-    // Get last 6 months
-    for (let i = 5; i >= 0; i--) {
+    for (let i = monthsCount - 1; i >= 0; i--) {
       const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1)
-      const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1)
-      const lastDay = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)
+      const year = monthDate.getFullYear()
+      const month = monthDate.getMonth()
 
-      const movements = await this.getMovementsByDateRange(
-        firstDay.toISOString().split('T')[0],
-        lastDay.toISOString().split('T')[0],
-        contextId
-      )
+      const monthMovements = movements.filter(movement => {
+        const movementDate = new Date(movement.date)
+        return movementDate.getFullYear() === year && movementDate.getMonth() === month
+      })
 
-      const income = movements
+      const income = monthMovements
         .filter(m => m.type === 'income')
         .reduce((sum, m) => sum + Number(m.amount), 0)
 
-      const expenses = movements
+      const expenses = monthMovements
         .filter(m => m.type === 'expense')
         .reduce((sum, m) => sum + Number(m.amount), 0)
-
-      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
       
       monthlyData.push({
-        mes: monthNames[monthDate.getMonth()],
+        mes: monthNames[month],
         ingresos: income,
         egresos: expenses,
         saldo: income - expenses
       })
     }
 
-    return monthlyData
-  }
-
-  static async getCategoryStats(contextId?: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
-    const currentDate = new Date()
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
-
-    const movements = await this.getMovementsByDateRange(
-      firstDayOfMonth.toISOString().split('T')[0],
-      lastDayOfMonth.toISOString().split('T')[0],
-      contextId
-    )
-
-    // Group by category (only expenses for the pie chart)
+    // 3. Category Stats
     const expensesByCategory = movements
       .filter(m => m.type === 'expense' && m.categories)
       .reduce((acc, movement) => {
@@ -314,6 +274,34 @@ export class MovementService {
         return acc
       }, {} as Record<string, { nombre: string; valor: number; color: string }>)
 
-    return Object.values(expensesByCategory).sort((a, b) => b.valor - a.valor)
+    const categoryStats = Object.values(expensesByCategory).sort((a, b) => b.valor - a.valor)
+
+    return {
+      detailedStats: {
+        totalIncome,
+        totalExpenses,
+        balance,
+        averageMonthly,
+        movementsCount: movements.length
+      },
+      monthlyComparison: monthlyData,
+      categoryStats
+    }
+  }
+
+  // Mantener métodos individuales para compatibilidad, pero que usen el método optimizado
+  static async getDetailedStats(userId: string, period: 'month' | 'year' = 'month', contextId?: string) {
+    const data = await this.getStatisticsData(userId, period, contextId)
+    return data.detailedStats
+  }
+
+  static async getMonthlyComparison(userId: string, contextId?: string) {
+    const data = await this.getStatisticsData(userId, 'month', contextId)
+    return data.monthlyComparison
+  }
+
+  static async getCategoryStats(userId: string, contextId?: string) {
+    const data = await this.getStatisticsData(userId, 'month', contextId)
+    return data.categoryStats
   }
 }

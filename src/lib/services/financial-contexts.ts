@@ -2,9 +2,14 @@ import { supabase } from '@/lib/supabase'
 import type { FinancialContext, ContextMember, UpdateFinancialContextData, InviteMemberData } from '@/lib/types'
 
 export class FinancialContextService {
-  static async getCurrentContext(): Promise<FinancialContext | null> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
+  static async getCurrentContext(userId?: string): Promise<FinancialContext | null> {
+    let currentUserId = userId
+    
+    if (!currentUserId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No authenticated user')
+      currentUserId = user.id
+    }
 
     const { data, error } = await supabase
       .from('context_members')
@@ -12,7 +17,7 @@ export class FinancialContextService {
         context_id,
         financial_contexts (*)
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', currentUserId)
       .limit(1)
       .single()
 
@@ -22,6 +27,25 @@ export class FinancialContextService {
     }
 
     return data?.financial_contexts as unknown as FinancialContext
+  }
+
+  // Optimizar para obtener contexto y miembros en una sola llamada
+  static async getContextWithMembers(contextId: string) {
+    const [context, members] = await Promise.all([
+      supabase
+        .from('financial_contexts')
+        .select('*')
+        .eq('id', contextId)
+        .single(),
+      this.getContextMembers(contextId)
+    ])
+
+    if (context.error) throw context.error
+    
+    return {
+      context: context.data,
+      members
+    }
   }
 
   static async getContextMembers(contextId: string): Promise<ContextMember[]> {

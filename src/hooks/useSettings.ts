@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/providers/auth-provider'
 import { AuthService } from '@/lib/services/auth'
 import { FinancialContextService } from '@/lib/services/financial-contexts'
-import { supabase } from '@/lib/supabase'
 import type { Profile, FinancialContext, ContextMember } from '@/lib/types'
 
 interface UserPreferences {
@@ -13,181 +13,161 @@ interface UserPreferences {
 }
 
 export function useSettings() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [context, setContext] = useState<FinancialContext | null>(null)
-  const [contextMembers, setContextMembers] = useState<ContextMember[]>([])
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    currency: 'USD',
-    language: 'es',
-    notifications: true,
-    emailNotifications: true,
-    budgetAlerts: true
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+
+  // Profile query
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError
+  } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: () => AuthService.getCurrentProfile(),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutos
   })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    loadInitialData()
-  }, [])
+  // Financial context query
+  const {
+    data: context,
+    isLoading: contextLoading,
+    error: contextError
+  } = useQuery({
+    queryKey: ['financial-context', user?.id],
+    queryFn: () => FinancialContextService.getCurrentContext(),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
 
-  const loadInitialData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
+  // Context members query
+  const {
+    data: contextMembers = [],
+    isLoading: membersLoading,
+    error: membersError
+  } = useQuery({
+    queryKey: ['context-members', context?.id],
+    queryFn: () => FinancialContextService.getContextMembers(context!.id),
+    enabled: !!context,
+    staleTime: 3 * 60 * 1000, // 3 minutos
+  })
 
-      // Cargar perfil del usuario
-      const userProfile = await AuthService.getCurrentProfile()
-      setProfile(userProfile)
-
-      // Cargar contexto financiero
-      const financialContext = await FinancialContextService.getCurrentContext()
-      setContext(financialContext)
-
-      // Cargar miembros del contexto si existe
-      if (financialContext) {
-        const members = await FinancialContextService.getContextMembers(financialContext.id)
-        setContextMembers(members)
-      }
-
-      // Cargar preferencias del usuario
-      if (userProfile?.preferences) {
-        setPreferences({
-          currency: userProfile.preferences.currency || 'USD',
-          language: userProfile.preferences.language || 'es',
-          notifications: userProfile.preferences.notifications !== false,
-          emailNotifications: userProfile.preferences.emailNotifications !== false,
-          budgetAlerts: userProfile.preferences.budgetAlerts !== false
-        })
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading settings')
-    } finally {
-      setLoading(false)
-    }
+  // Derived preferences
+  const preferences: UserPreferences = {
+    currency: profile?.preferences?.currency || 'USD',
+    language: profile?.preferences?.language || 'es',
+    notifications: profile?.preferences?.notifications !== false,
+    emailNotifications: profile?.preferences?.emailNotifications !== false,
+    budgetAlerts: profile?.preferences?.budgetAlerts !== false
   }
 
-  // Actualizar perfil
-  const updateProfile = async (updates: { name?: string }) => {
-    try {
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (updates: { name?: string }) => AuthService.updateProfile(updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
+    }
+  })
+
+  // Update preferences mutation
+  const updatePreferencesMutation = useMutation({
+    mutationFn: async (newPreferences: Partial<UserPreferences>) => {
       if (!profile) throw new Error('No profile loaded')
       
-      const updatedProfile = await AuthService.updateProfile(updates)
-      setProfile(updatedProfile)
-      return updatedProfile
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error updating profile'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
-  }
-
-  // Actualizar preferencias
-  const updatePreferences = async (newPreferences: Partial<UserPreferences>) => {
-    try {
-      if (!profile) throw new Error('No profile loaded')
-
-      const updatedPrefs = { ...preferences, ...newPreferences }
-      setPreferences(updatedPrefs)
-
-      await AuthService.updateProfile({
+      return AuthService.updateProfile({
         preferences: {
           ...profile.preferences,
-          ...updatedPrefs
+          ...newPreferences
         }
       })
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error updating preferences'
-      setError(errorMessage)
-      throw new Error(errorMessage)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
     }
+  })
+
+  // Update context mutation
+  const updateContextMutation = useMutation({
+    mutationFn: ({ contextId, updates }: { contextId: string; updates: { name?: string; description?: string } }) =>
+      FinancialContextService.updateContext(contextId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financial-context', user?.id] })
+    }
+  })
+
+  // Invite member mutation
+  const inviteMemberMutation = useMutation({
+    mutationFn: ({ contextId, email }: { contextId: string; email: string }) =>
+      FinancialContextService.inviteMember({ context_id: contextId, email }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['context-members', context?.id] })
+    }
+  })
+
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: ({ contextId, userId }: { contextId: string; userId: string }) =>
+      FinancialContextService.removeMember(contextId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['context-members', context?.id] })
+    }
+  })
+
+  // Sign out mutation
+  const signOutMutation = useMutation({
+    mutationFn: () => AuthService.signOut(),
+    onSuccess: () => {
+      queryClient.clear()
+    }
+  })
+
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => AuthService.deleteAccount(),
+    onSuccess: () => {
+      queryClient.clear()
+    }
+  })
+
+  // Helper functions
+  const updateProfile = async (updates: { name?: string }) => {
+    return updateProfileMutation.mutateAsync(updates)
   }
 
-  // Actualizar contexto financiero
+  const updatePreferences = async (newPreferences: Partial<UserPreferences>) => {
+    return updatePreferencesMutation.mutateAsync(newPreferences)
+  }
+
   const updateContext = async (updates: { name?: string; description?: string }) => {
-    try {
-      if (!context) throw new Error('No context loaded')
-      
-      const updatedContext = await FinancialContextService.updateContext(context.id, updates)
-      setContext(updatedContext)
-      return updatedContext
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error updating context'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
+    if (!context) throw new Error('No context loaded')
+    return updateContextMutation.mutateAsync({ contextId: context.id, updates })
   }
 
-  // Invitar miembro
   const inviteMember = async (email: string) => {
-    try {
-      if (!context) throw new Error('No context loaded')
-      
-      const newMember = await FinancialContextService.inviteMember({
-        context_id: context.id,
-        email
-      })
-      
-      setContextMembers(prev => [...prev, newMember])
-      return newMember
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error inviting member'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
+    if (!context) throw new Error('No context loaded')
+    return inviteMemberMutation.mutateAsync({ contextId: context.id, email })
   }
 
-  // Remover miembro
   const removeMember = async (userId: string) => {
-    try {
-      if (!context) throw new Error('No context loaded')
-      
-      await FinancialContextService.removeMember(context.id, userId)
-      setContextMembers(prev => prev.filter(member => member.user_id !== userId))
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error removing member'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
+    if (!context) throw new Error('No context loaded')
+    return removeMemberMutation.mutateAsync({ contextId: context.id, userId })
   }
 
-  // Cerrar sesión
   const signOut = async () => {
-    try {
-      await AuthService.signOut()
-      // Redirigir se maneja en el componente padre
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error signing out'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
+    return signOutMutation.mutateAsync()
   }
 
-  // Eliminar cuenta
   const deleteAccount = async () => {
-    try {
-      // Primero eliminar el perfil de la base de datos
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No authenticated user')
-
-      // Eliminar perfil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id)
-
-      if (profileError) throw profileError
-
-      // Eliminar usuario de Supabase Auth
-      const { error: authError } = await supabase.auth.admin.deleteUser(user.id)
-      if (authError) throw authError
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error deleting account'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
+    return deleteAccountMutation.mutateAsync()
   }
+
+  // Combined loading and error states
+  const loading = profileLoading || contextLoading || membersLoading
+  const error = profileError || contextError || membersError || 
+    updateProfileMutation.error || updatePreferencesMutation.error || 
+    updateContextMutation.error || inviteMemberMutation.error || 
+    removeMemberMutation.error || signOutMutation.error || 
+    deleteAccountMutation.error
 
   return {
     // Estado
@@ -196,7 +176,7 @@ export function useSettings() {
     contextMembers,
     preferences,
     loading,
-    error,
+    error: error as Error | null,
     
     // Acciones
     updateProfile,
@@ -208,7 +188,19 @@ export function useSettings() {
     deleteAccount,
     
     // Utilidades
-    clearError: () => setError(null),
-    reload: loadInitialData
+    clearError: () => {
+      updateProfileMutation.reset()
+      updatePreferencesMutation.reset()
+      updateContextMutation.reset()
+      inviteMemberMutation.reset()
+      removeMemberMutation.reset()
+      signOutMutation.reset()
+      deleteAccountMutation.reset()
+    },
+    reload: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['financial-context', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['context-members', context?.id] })
+    }
   }
 }

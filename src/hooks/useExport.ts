@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useAuth } from '@/providers/auth-provider'
 import { ExportService, type ExportData } from '@/lib/services/export'
 import * as XLSX from 'xlsx'
 
 export function useExport() {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -18,6 +20,10 @@ export function useExport() {
     contextId?: string
   ) => {
     try {
+      if (!user) {
+        throw new Error('Usuario no autenticado')
+      }
+
       setLoading(true)
       setError(null)
 
@@ -31,7 +37,7 @@ export function useExport() {
       }
 
       // Obtener datos
-      const exportData = await ExportService.getExportData(startDate, endDate, contextId)
+      const exportData = await ExportService.getExportData(user.id, startDate, endDate, contextId)
 
       // Generar archivo Excel
       const workbook = XLSX.utils.book_new()

@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/providers/auth-provider"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 
@@ -11,34 +11,14 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/auth/signin")
-        return
-      }
-      setUser(user)
-      setLoading(false)
+    if (!loading && !user) {
+      router.push("/auth/signin")
     }
-
-    getUser()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          router.push("/auth/signin")
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [router])
+  }, [user, loading, router])
 
   if (loading) {
     return (
@@ -46,6 +26,10 @@ export default function DashboardLayout({
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-violet-600"></div>
       </div>
     )
+  }
+
+  if (!user) {
+    return null // Redirigiendo...
   }
 
   return (

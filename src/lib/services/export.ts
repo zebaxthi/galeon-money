@@ -32,6 +32,7 @@ export interface ExportStatistics {
 
 export class ExportService {
   static async getExportData(
+    userId: string,
     startDate: string,
     endDate: string,
     contextId?: string
@@ -39,9 +40,9 @@ export class ExportService {
     try {
       // Obtener datos en paralelo
       const [movements, categories, budgets] = await Promise.all([
-        MovementService.getMovementsByDateRange(startDate, endDate, contextId),
-        CategoryService.getCategories(contextId),
-        BudgetService.getBudgets(contextId)
+        MovementService.getMovementsByDateRange(userId, startDate, endDate, contextId),
+        CategoryService.getCategories(userId, contextId),
+        BudgetService.getBudgets(userId, contextId)
       ])
 
       // Generar resumen por categorías

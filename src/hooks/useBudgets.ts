@@ -1,96 +1,79 @@
-import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/providers/auth-provider'
 import { BudgetService } from '@/lib/services/budgets'
 import type { Budget, CreateBudgetData } from '@/lib/types'
 
 export function useBudgets(contextId?: string) {
-  const [budgets, setBudgets] = useState<Budget[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
 
-  const loadBudgets = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await BudgetService.getBudgets(contextId)
-      setBudgets(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading budgets')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    data: budgets = [],
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['budgets', user?.id, contextId],
+    queryFn: () => user ? BudgetService.getBudgets(user.id, contextId) : [],
+    enabled: !!user,
+    staleTime: 3 * 60 * 1000, // 3 minutos
+  })
 
-  useEffect(() => {
-    loadBudgets()
-  }, [contextId])
+  const createBudgetMutation = useMutation({
+    mutationFn: (budgetData: CreateBudgetData) =>
+      user ? BudgetService.createBudget(user.id, budgetData) : Promise.reject('No user'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+    },
+  })
 
-  const createBudget = async (budgetData: CreateBudgetData) => {
-    try {
-      setError(null)
-      const newBudget = await BudgetService.createBudget(budgetData)
-      setBudgets(prev => [...prev, newBudget])
-      return newBudget
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error creating budget')
-      throw err
-    }
-  }
+  const updateBudgetMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateBudgetData> }) =>
+      BudgetService.updateBudget(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+    },
+  })
 
-  const updateBudget = async (id: string, updates: Partial<CreateBudgetData>) => {
-    try {
-      setError(null)
-      const updatedBudget = await BudgetService.updateBudget(id, updates)
-      setBudgets(prev => prev.map(b => b.id === id ? updatedBudget : b))
-      return updatedBudget
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error updating budget')
-      throw err
-    }
-  }
-
-  const deleteBudget = async (id: string) => {
-    try {
-      setError(null)
-      await BudgetService.deleteBudget(id)
-      setBudgets(prev => prev.filter(b => b.id !== id))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error deleting budget')
-      throw err
-    }
-  }
+  const deleteBudgetMutation = useMutation({
+    mutationFn: (id: string) => BudgetService.deleteBudget(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+    },
+  })
 
   return {
     budgets,
     loading,
-    error,
-    createBudget,
-    updateBudget,
-    deleteBudget,
-    refetch: loadBudgets
+    error: error as Error | null,
+    createBudget: createBudgetMutation.mutate,
+    updateBudget: updateBudgetMutation.mutate,
+    deleteBudget: deleteBudgetMutation.mutate,
+    isCreating: createBudgetMutation.isPending,
+    isUpdating: updateBudgetMutation.isPending,
+    isDeleting: deleteBudgetMutation.isPending,
   }
 }
 
 export function useBudgetProgress(contextId?: string) {
-  const [budgetProgress, setBudgetProgress] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
 
-  useEffect(() => {
-    const loadBudgetProgress = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await BudgetService.getBudgetProgress(contextId)
-        setBudgetProgress(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading budget progress')
-      } finally {
-        setLoading(false)
-      }
-    }
+  const {
+    data: budgetProgress = [],
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['budget-progress', user?.id, contextId],
+    queryFn: () => user ? BudgetService.getBudgetProgress(user.id, contextId) : [],
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutos
+  })
 
-    loadBudgetProgress()
-  }, [contextId])
-
-  return { budgetProgress, loading, error }
+  return {
+    budgetProgress,
+    loading,
+    error: error as Error | null
+  }
 }

@@ -2,14 +2,11 @@ import { supabase } from '@/lib/supabase'
 import type { Category, CreateCategoryData } from '@/lib/types'
 
 export class CategoryService {
-  static async getCategories(contextId?: string): Promise<Category[]> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async getCategories(userId: string, contextId?: string): Promise<Category[]> {
     let query = supabase
       .from('categories')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('name', { ascending: true })
 
     if (contextId) {
@@ -22,20 +19,17 @@ export class CategoryService {
     return data || []
   }
 
-  static async getCategoriesByType(type: 'income' | 'expense', contextId?: string): Promise<Category[]> {
-    const categories = await this.getCategories(contextId)
+  static async getCategoriesByType(userId: string, type: 'income' | 'expense', contextId?: string): Promise<Category[]> {
+    const categories = await this.getCategories(userId, contextId)
     return categories.filter(cat => cat.type === type)
   }
 
-  static async createCategory(categoryData: CreateCategoryData): Promise<Category> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async createCategory(userId: string, categoryData: CreateCategoryData): Promise<Category> {
     const { data, error } = await supabase
       .from('categories')
       .insert({
         ...categoryData,
-        user_id: user.id
+        user_id: userId
       })
       .select()
       .single()

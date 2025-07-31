@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/providers/auth-provider'
 import { MovementService } from '@/lib/services/movements'
 
 interface StatisticsData {
@@ -25,59 +26,55 @@ interface StatisticsData {
 }
 
 export function useStatistics(period: 'month' | 'year' = 'month', contextId?: string) {
-  const [data, setData] = useState<StatisticsData>({
-    resumenEstadisticas: {
-      totalIngresos: 0,
-      totalEgresos: 0,
-      saldoNeto: 0,
-      promedioMensual: 0
+  const { user } = useAuth()
+
+  const {
+    data = {
+      resumenEstadisticas: {
+        totalIngresos: 0,
+        totalEgresos: 0,
+        saldoNeto: 0,
+        promedioMensual: 0
+      },
+      datosIngresoEgreso: [],
+      datosCategorias: [],
+      tendenciaMensual: []
     },
-    datosIngresoEgreso: [],
-    datosCategorias: [],
-    tendenciaMensual: []
-  })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['statistics', user?.id, period, contextId],
+    queryFn: async (): Promise<StatisticsData> => {
+      if (!user) throw new Error('No authenticated user')
 
-  useEffect(() => {
-    const loadStatistics = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+      // Single optimized call instead of 3 separate calls
+      const statisticsData = await MovementService.getStatisticsData(user.id, period, contextId)
 
-        // Load all statistics in parallel
-        const [detailedStats, monthlyComparison, categoryStats] = await Promise.all([
-          MovementService.getDetailedStats(period, contextId),
-          MovementService.getMonthlyComparison(contextId),
-          MovementService.getCategoryStats(contextId)
-        ])
+      // Transform data for charts
+      const tendenciaMensual = statisticsData.monthlyComparison.map(item => ({
+        mes: item.mes,
+        saldo: item.saldo
+      }))
 
-        // Transform data for charts
-        const tendenciaMensual = monthlyComparison.map(item => ({
-          mes: item.mes,
-          saldo: item.saldo
-        }))
-
-        setData({
-          resumenEstadisticas: {
-            totalIngresos: detailedStats.totalIncome,
-            totalEgresos: detailedStats.totalExpenses,
-            saldoNeto: detailedStats.balance,
-            promedioMensual: detailedStats.averageMonthly
-          },
-          datosIngresoEgreso: monthlyComparison,
-          datosCategorias: categoryStats,
-          tendenciaMensual
-        })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading statistics')
-      } finally {
-        setLoading(false)
+      return {
+        resumenEstadisticas: {
+          totalIngresos: statisticsData.detailedStats.totalIncome,
+          totalEgresos: statisticsData.detailedStats.totalExpenses,
+          saldoNeto: statisticsData.detailedStats.balance,
+          promedioMensual: statisticsData.detailedStats.averageMonthly
+        },
+        datosIngresoEgreso: statisticsData.monthlyComparison,
+        datosCategorias: statisticsData.categoryStats,
+        tendenciaMensual
       }
-    }
+    },
+    enabled: !!user,
+    staleTime: 3 * 60 * 1000, // 3 minutos
+  })
 
-    loadStatistics()
-  }, [period, contextId])
-
-  return { data, loading, error }
+  return { 
+    data, 
+    loading, 
+    error: error as Error | null 
+  }
 }

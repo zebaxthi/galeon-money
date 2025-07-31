@@ -2,10 +2,7 @@ import { supabase } from '@/lib/supabase'
 import type { Budget, CreateBudgetData } from '@/lib/types'
 
 export class BudgetService {
-  static async getBudgets(contextId?: string): Promise<Budget[]> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async getBudgets(userId: string, contextId?: string): Promise<Budget[]> {
     let query = supabase
       .from('budgets')
       .select(`
@@ -18,7 +15,7 @@ export class BudgetService {
           icon
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
 
@@ -35,15 +32,12 @@ export class BudgetService {
     })) || []
   }
 
-  static async createBudget(budgetData: CreateBudgetData): Promise<Budget> {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('No authenticated user')
-
+  static async createBudget(userId: string, budgetData: CreateBudgetData): Promise<Budget> {
     const { data, error } = await supabase
       .from('budgets')
       .insert({
         ...budgetData,
-        user_id: user.id
+        user_id: userId
       })
       .select(`
         *,
@@ -106,8 +100,8 @@ export class BudgetService {
     if (error) throw error
   }
 
-  static async getBudgetProgress(contextId?: string) {
-    const budgets = await this.getBudgets(contextId)
+  static async getBudgetProgress(userId: string, contextId?: string) {
+    const budgets = await this.getBudgets(userId, contextId)
     
     return budgets.map(budget => {
       const progress = (Number(budget.spent) / Number(budget.amount)) * 100

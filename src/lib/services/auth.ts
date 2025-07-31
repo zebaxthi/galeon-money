@@ -75,4 +75,21 @@ export class AuthService {
     if (error) throw error
     return data
   }
+
+  static async deleteAccount() {
+    const user = await this.getCurrentUser()
+    if (!user) throw new Error('No authenticated user')
+
+    // Delete profile first
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', user.id)
+
+    if (profileError) throw profileError
+
+    // Delete user from Supabase Auth
+    const { error: authError } = await supabase.auth.admin.deleteUser(user.id)
+    if (authError) throw authError
+  }
 }
