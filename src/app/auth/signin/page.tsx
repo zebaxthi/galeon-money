@@ -34,8 +34,9 @@ export default function SignInPage() {
       if (error) throw error
       
       router.push("/dashboard")
-    } catch (error: any) {
-      setError(error.message || "Error al iniciar sesión")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error al iniciar sesión"
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -51,8 +52,9 @@ export default function SignInPage() {
       })
       
       if (error) throw error
-    } catch (error: any) {
-      setError(error.message || "Error con Google Sign In")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error con Google Sign In"
+      setError(errorMessage)
     }
   }
 

@@ -41,8 +41,9 @@ export default function SignUpPage() {
       if (error) throw error
       
       setSuccess(true)
-    } catch (error: any) {
-      setError(error.message || "Error al crear la cuenta")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error al crear la cuenta"
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -58,8 +59,9 @@ export default function SignUpPage() {
       })
       
       if (error) throw error
-    } catch (error: any) {
-      setError(error.message || "Error con Google Sign Up")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error con Google Sign Up"
+      setError(errorMessage)
     }
   }
 

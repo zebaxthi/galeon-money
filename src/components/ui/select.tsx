@@ -158,7 +158,7 @@ const SelectItem = React.forwardRef<
     }
     if (Array.isArray(element.props.children)) {
       return element.props.children
-        .map((child: any) => {
+        .map((child: React.ReactNode) => {
           if (typeof child === 'string') return child
           if (React.isValidElement(child) && typeof child.props.children === 'string') {
             return child.props.children

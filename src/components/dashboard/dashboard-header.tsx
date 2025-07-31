@@ -6,8 +6,18 @@ import { Wallet, LogOut, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
+interface UserData {
+  id: string
+  email?: string
+  user_metadata?: {
+    name?: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
 interface DashboardHeaderProps {
-  user: any
+  user: UserData
 }
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
