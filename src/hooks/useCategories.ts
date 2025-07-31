@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/providers/auth-provider'
 import { CategoryService } from '@/lib/services/categories'
-import type { Category, CreateCategoryData } from '@/lib/types'
+import type { CreateCategoryData } from '@/lib/types'
 
 export function useCategories(contextId?: string) {
   const { user } = useAuth()

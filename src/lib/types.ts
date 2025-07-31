@@ -3,9 +3,19 @@ export interface Profile {
   email: string
   name?: string
   avatar_url?: string
-  preferences?: Record<string, unknown>
+  preferences?: Record<string, string | number | boolean | null>
   created_at: string
   updated_at: string
+}
+
+export interface UserData {
+  id: string
+  email?: string
+  user_metadata?: {
+    name?: string
+    [key: string]: string | number | boolean | null | undefined
+  }
+  [key: string]: string | number | boolean | null | undefined | object
 }
 
 export interface FinancialContext {

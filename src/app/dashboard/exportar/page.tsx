@@ -195,7 +195,7 @@ export default function ExportarPage() {
                   <Checkbox
                     id="categorias"
                     checked={incluirCategorias}
-                    onCheckedChange={setIncluirCategorias}
+                    onCheckedChange={(checked) => setIncluirCategorias(checked === true)}
                   />
                   <Label htmlFor="categorias">Información de categorías</Label>
                 </div>
@@ -203,7 +203,7 @@ export default function ExportarPage() {
                   <Checkbox
                     id="presupuestos"
                     checked={incluirPresupuestos}
-                    onCheckedChange={setIncluirPresupuestos}
+                    onCheckedChange={(checked) => setIncluirPresupuestos(checked === true)}
                   />
                   <Label htmlFor="presupuestos">Estado de presupuestos</Label>
                 </div>
@@ -211,7 +211,7 @@ export default function ExportarPage() {
                   <Checkbox
                     id="estadisticas"
                     checked={incluirEstadisticas}
-                    onCheckedChange={setIncluirEstadisticas}
+                    onCheckedChange={(checked) => setIncluirEstadisticas(checked === true)}
                   />
                   <Label htmlFor="estadisticas">Estadísticas generales</Label>
                 </div>
@@ -278,7 +278,7 @@ export default function ExportarPage() {
                       <div>
                         <p className="font-medium text-sm">{movimiento.description || 'Sin descripción'}</p>
                         <p className="text-xs text-muted-foreground">
-                          {movimiento.categories?.name || 'Sin categoría'} • {movimiento.movement_date}
+                          {movimiento.category?.name || 'Sin categoría'} • {movimiento.movement_date}
                         </p>
                       </div>
                       <span className={`font-bold text-sm ${

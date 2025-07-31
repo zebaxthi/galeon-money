@@ -269,7 +269,7 @@ export default function PresupuestosPage() {
               ) : (
                 <div className="space-y-6">
                   {budgets.map((budget) => {
-                    const progress = budgetProgress.find(p => p.budget_id === budget.id)
+                    const progress = budgetProgress.find(p => p.id === budget.id)
                     const spent = progress?.spent || 0
                     const percentage = (spent / budget.amount) * 100
                     const remaining = budget.amount - spent

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/providers/auth-provider'
 import { AuthService } from '@/lib/services/auth'
 import { FinancialContextService } from '@/lib/services/financial-contexts'
-import type { Profile, FinancialContext, ContextMember } from '@/lib/types'
+import type { FinancialContext, ContextMember } from '@/lib/types'
 
 interface UserPreferences {
   currency: string
@@ -54,8 +54,8 @@ export function useSettings() {
 
   // Derived preferences
   const preferences: UserPreferences = {
-    currency: profile?.preferences?.currency || 'USD',
-    language: profile?.preferences?.language || 'es',
+    currency: (profile?.preferences?.currency || 'USD').toString(),
+    language: (profile?.preferences?.language || 'es').toString(),
     notifications: profile?.preferences?.notifications !== false,
     emailNotifications: profile?.preferences?.emailNotifications !== false,
     budgetAlerts: profile?.preferences?.budgetAlerts !== false

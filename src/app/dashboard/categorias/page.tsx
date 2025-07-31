@@ -54,7 +54,8 @@ export default function CategoriasPage() {
       await createCategory({
         name: nombreCategoria.trim(),
         type: tipoCategoria,
-        icon: iconoCategoria
+        icon: iconoCategoria,
+        color: tipoCategoria === 'income' ? '#10b981' : '#ef4444' // Verde para ingresos, rojo para egresos
       })
 
       // Limpiar formulario

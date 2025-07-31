@@ -52,7 +52,7 @@ export default function EstadisticasPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="p-6">
-            <p className="text-red-600">Error al cargar estadísticas: {error}</p>
+            <p className="text-red-600">Error al cargar estadísticas: {error.toString()}</p>
           </CardContent>
         </Card>
       </div>
@@ -205,7 +205,7 @@ export default function EstadisticasPage() {
                         cy="50%"
                         outerRadius={80}
                         dataKey="valor"
-                        label={({ nombre, percent }) => `${nombre} ${(percent * 100).toFixed(0)}%`}
+                        label={({ nombre, percent }) =>`${nombre} ${(percent ?? 0 * 100).toFixed(0)}%`}
                       >
                         {datosCategorias.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />

@@ -80,20 +80,23 @@ export class ExportService {
     // Procesar movimientos
     movements.forEach(movement => {
       const categoryId = movement.category_id
-      const categoryName = movement.categories?.name || 'Sin categoría'
+      const categoryName = movement.category?.name || 'Sin categoría'
       const amount = Number(movement.amount)
 
-      if (!categoryMap.has(categoryId)) {
-        categoryMap.set(categoryId, {
+      if (!categoryMap.has(categoryId || '')) {
+        categoryMap.set(categoryId || '', {
           categoria: categoryName,
           ingresos: 0,
           egresos: 0,
           saldo: 0,
-          color: movement.categories?.color
+          color: movement.category?.color
         })
       }
 
-      const summary = categoryMap.get(categoryId)!
+      const summary = categoryMap.get(categoryId || '') 
+      if (!summary) {
+        throw new Error(`Category summary not found for ID: ${categoryId}`)
+      }
       
       if (movement.type === 'income') {
         summary.ingresos += amount
@@ -148,7 +151,7 @@ export class ExportService {
     return {
       fecha: movement.movement_date,
       tipo: movement.type === 'income' ? 'Ingreso' : 'Egreso',
-      categoria: movement.categories?.name || 'Sin categoría',
+      categoria: movement.category?.name || 'Sin categoría',
       descripcion: movement.description || 'Sin descripción',
       monto: movement.type === 'income' ? Number(movement.amount) : -Number(movement.amount),
       notas: movement.notes || '',
@@ -172,7 +175,7 @@ export class ExportService {
     const remaining = amount - spent
 
     return {
-      categoria: budget.categories?.name || 'Sin categoría',
+      categoria: budget.category?.name || 'Sin categoría',
       presupuesto: amount,
       gastado: spent,
       restante: remaining,

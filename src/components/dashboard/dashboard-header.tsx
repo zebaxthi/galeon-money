@@ -5,16 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Wallet, LogOut, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-
-interface UserData {
-  id: string
-  email?: string
-  user_metadata?: {
-    name?: string
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}
+import type { UserData } from "@/lib/types"
 
 interface DashboardHeaderProps {
   user: UserData

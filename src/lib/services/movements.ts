@@ -233,7 +233,7 @@ export class MovementService {
       const month = monthDate.getMonth()
 
       const monthMovements = movements.filter(movement => {
-        const movementDate = new Date(movement.date)
+        const movementDate = new Date(movement.movement_date)
         return movementDate.getFullYear() === year && movementDate.getMonth() === month
       })
 
@@ -255,10 +255,10 @@ export class MovementService {
 
     // 3. Category Stats
     const expensesByCategory = movements
-      .filter(m => m.type === 'expense' && m.categories)
+      .filter(m => m.type === 'expense' && m.category)
       .reduce((acc, movement) => {
-        const categoryName = movement.categories.name
-        const categoryColor = movement.categories.color || '#8b5cf6'
+        const categoryName = movement.category?.name || 'Uncategorized'
+        const categoryColor = movement.category?.color || '#8b5cf6'
         const amount = Number(movement.amount)
 
         if (acc[categoryName]) {

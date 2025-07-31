@@ -54,7 +54,7 @@ export default function MovimientosPage() {
         type: tipo,
         category_id: categoryId,
         movement_date: fecha,
-        description: description || undefined
+        description: description || ''
       })
 
       // Limpiar formulario

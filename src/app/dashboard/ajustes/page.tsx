@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -57,7 +57,7 @@ export default function AjustesPage() {
   const [isLoadingAction, setIsLoadingAction] = useState(false)
 
   // Inicializar estados cuando se cargan los datos
-  useState(() => {
+  useEffect(() => {
     if (profile) {
       setNombre(profile.name || '')
     }
@@ -174,7 +174,7 @@ export default function AjustesPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
+          {error?.toString()}
         </div>
       )}
 

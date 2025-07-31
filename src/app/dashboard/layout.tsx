@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import type { UserData } from "@/lib/types"
 
 export default function DashboardLayout({
   children,
@@ -34,7 +35,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader user={user} />
+      <DashboardHeader user={user as unknown as UserData} />
       <div className="flex">
         {/* Desktop Sidebar */}
         <div className="hidden lg:block w-64 border-r bg-muted/10">

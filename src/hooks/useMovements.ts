@@ -1,12 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useAuth } from '@/providers/auth-provider'
 import { MovementService } from '@/lib/services/movements'
 import { useQueryInvalidation } from './useQueryInvalidation'
-import type { Movement, CreateMovementData } from '@/lib/types'
+import type { CreateMovementData } from '@/lib/types'
 
 export function useMovements(contextId?: string, limit?: number) {
   const { user } = useAuth()
-  const queryClient = useQueryClient()
   const { invalidateMovementRelatedQueries } = useQueryInvalidation()
 
   const {

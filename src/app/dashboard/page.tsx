@@ -68,9 +68,9 @@ export default function DashboardPage() {
             ) : (
               <>
                 <div className={`text-2xl font-bold ${
-                  stats.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                  (stats?.balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {formatAmount(stats.balance)}
+                  {formatAmount(stats?.balance ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Balance actual
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-green-600">
-                  {formatAmount(stats.totalIncome)}
+                  {formatAmount(stats?.totalIncome ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Total de ingresos
@@ -118,7 +118,7 @@ export default function DashboardPage() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-red-600">
-                  {formatAmount(stats.totalExpenses)}
+                  {formatAmount(stats?.totalExpenses ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Total de gastos

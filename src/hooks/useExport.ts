@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '@/providers/auth-provider'
-import { ExportService, type ExportData } from '@/lib/services/export'
+import { ExportService } from '@/lib/services/export'
 import * as XLSX from 'xlsx'
 
 export function useExport() {
