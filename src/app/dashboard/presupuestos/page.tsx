@@ -1,25 +1,27 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
-import { useBudgets, useBudgetProgress } from "@/hooks/useBudgets"
-import { useCategories } from "@/hooks/useCategories"
+import { useState } from 'react'
+import { useBudgets, useBudgetProgress } from '@/hooks/useBudgets'
+import { useCategories } from '@/hooks/useCategories'
+import { useFinancialContext } from '@/hooks/useFinancialContext'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
 import { 
-  Plus, 
   Target, 
-  DollarSign,
+  DollarSign, 
+  Calendar,
+  Loader2, 
+  Trash2,
   AlertTriangle,
   CheckCircle,
-  Trash2,
-  Loader2
-} from "lucide-react"
+  TrendingDown
+} from 'lucide-react'
 
 export default function PresupuestosPage() {
   const [nombrePresupuesto, setNombrePresupuesto] = useState('')
@@ -28,20 +30,94 @@ export default function PresupuestosPage() {
   const [periodoPresupuesto, setPeriodoPresupuesto] = useState('monthly')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const { currentContext } = useFinancialContext()
+  const { 
+    budgets, 
+    loading: budgetsLoading, 
+    createBudget, 
+    deleteBudget
+  } = useBudgets(currentContext?.id)
+  
+  const { 
+    budgetProgress, 
+    loading: progressLoading 
+  } = useBudgetProgress(currentContext?.id)
+  
+  const { getCategoriesByType } = useCategories(currentContext?.id)
   const { toast } = useToast()
-  const { budgets, loading: budgetsLoading, createBudget, deleteBudget } = useBudgets()
-  const { budgetProgress } = useBudgetProgress()
-  const { categories, getCategoriesByType } = useCategories()
 
   const expenseCategories = getCategoriesByType('expense')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!nombrePresupuesto.trim() || !montoPresupuesto || !categoriaPresupuesto) {
+    // Validaciones del frontend
+    const trimmedName = nombrePresupuesto.trim()
+    const amount = parseFloat(montoPresupuesto)
+    
+    if (!trimmedName) {
       toast({
         title: "Error",
-        description: "Por favor completa todos los campos requeridos",
+        description: "Por favor ingresa un nombre para el presupuesto",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (trimmedName.length < 3) {
+      toast({
+        title: "Error",
+        description: "El nombre debe tener al menos 3 caracteres",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (trimmedName.length > 100) {
+      toast({
+        title: "Error",
+        description: "El nombre no puede exceder 100 caracteres",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!montoPresupuesto || amount <= 0) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa un monto válido mayor a 0",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (amount > 999999999) {
+      toast({
+        title: "Error",
+        description: "El monto no puede exceder 999,999,999",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!categoriaPresupuesto) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona una categoría",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Verificar duplicados en el frontend (validación adicional)
+    const selectedCategory = expenseCategories.find(cat => cat.id === categoriaPresupuesto)
+    const existingBudgetsForCategory = budgets.filter(budget => budget.category_id === categoriaPresupuesto)
+    
+    if (existingBudgetsForCategory.length > 0) {
+      const conflictingBudget = existingBudgetsForCategory[0]
+      toast({
+        title: "Error",
+        description: `Ya existe un presupuesto activo "${conflictingBudget.name}" para la categoría "${selectedCategory?.name}"`,
         variant: "destructive"
       })
       return
@@ -67,12 +143,13 @@ export default function PresupuestosPage() {
       }
 
       await createBudget({
-        name: nombrePresupuesto.trim(),
-        amount: parseFloat(montoPresupuesto),
+        name: trimmedName,
+        amount: amount,
         category_id: categoriaPresupuesto,
         period: periodoPresupuesto as 'weekly' | 'monthly' | 'yearly',
         start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0]
+        end_date: endDate.toISOString().split('T')[0],
+        context_id: currentContext?.id
       })
 
       // Limpiar formulario
@@ -84,10 +161,10 @@ export default function PresupuestosPage() {
         title: "¡Éxito!",
         description: "Presupuesto creado correctamente",
       })
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo crear el presupuesto. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudo crear el presupuesto. Inténtalo de nuevo.",
         variant: "destructive"
       })
     } finally {
@@ -106,10 +183,10 @@ export default function PresupuestosPage() {
         title: "Presupuesto eliminado",
         description: `El presupuesto "${name}" ha sido eliminado correctamente`,
       })
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo eliminar el presupuesto. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudo eliminar el presupuesto. Inténtalo de nuevo.",
         variant: "destructive"
       })
     }
@@ -138,6 +215,16 @@ export default function PresupuestosPage() {
       day: 'numeric'
     })
   }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount)
+  }
+
+  // Verificar si los datos están cargando
+  const isLoading = budgetsLoading || progressLoading
 
   return (
     <div className="space-y-6">
@@ -169,9 +256,13 @@ export default function PresupuestosPage() {
                     className="pl-10"
                     value={nombrePresupuesto}
                     onChange={(e) => setNombrePresupuesto(e.target.value)}
+                    maxLength={100}
                     required
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {nombrePresupuesto.length}/100 caracteres
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -185,16 +276,23 @@ export default function PresupuestosPage() {
                     } />
                   </SelectTrigger>
                   <SelectContent>
-                    {expenseCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        <div className="flex items-center space-x-2">
-                          <span>{category.icon}</span>
-                          <span>{category.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {expenseCategories
+                      .filter(category => !budgets.some(budget => budget.category_id === category.id))
+                      .map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center space-x-2">
+                            <span>{category.icon}</span>
+                            <span>{category.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+                {expenseCategories.length > 0 && budgets.length === expenseCategories.length && (
+                  <p className="text-xs text-muted-foreground">
+                    Todas las categorías ya tienen presupuestos activos
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -205,6 +303,8 @@ export default function PresupuestosPage() {
                     id="monto"
                     type="number"
                     step="0.01"
+                    min="0.01"
+                    max="999999999"
                     placeholder="0.00"
                     className="pl-10"
                     value={montoPresupuesto}
@@ -228,7 +328,7 @@ export default function PresupuestosPage() {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || expenseCategories.length === 0}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -236,11 +336,17 @@ export default function PresupuestosPage() {
                   </>
                 ) : (
                   <>
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Target className="mr-2 h-4 w-4" />
                     Crear Presupuesto
                   </>
                 )}
               </Button>
+              
+              {expenseCategories.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Necesitas crear al menos una categoría de egresos para crear presupuestos
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>
@@ -251,11 +357,11 @@ export default function PresupuestosPage() {
             <CardHeader>
               <CardTitle>Presupuestos Activos</CardTitle>
               <CardDescription>
-                Seguimiento de tus presupuestos actuales
+                Monitorea el progreso de tus presupuestos
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {budgetsLoading ? (
+              {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                   <span className="ml-2">Cargando presupuestos...</span>
@@ -269,61 +375,59 @@ export default function PresupuestosPage() {
               ) : (
                 <div className="space-y-6">
                   {budgets.map((budget) => {
-                    const progress = budgetProgress.find(p => p.id === budget.id)
-                    const spent = progress?.spent || 0
+                    // Buscar el progreso del presupuesto de forma segura
+                    const progress = budgetProgress?.find(p => p.id === budget.id)
+                    const spent = progress?.spent || budget.spent || 0
                     const percentage = (spent / budget.amount) * 100
                     const remaining = budget.amount - spent
-                    const category = categories.find(c => c.id === budget.category_id)
+                    const category = expenseCategories.find(c => c.id === budget.category_id)
                     
                     return (
                       <div key={budget.id} className="p-4 border rounded-lg">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
                             {getStatusIcon(spent, budget.amount)}
-                            <h3 className="font-semibold">{budget.name}</h3>
-                            <Badge variant="secondary">
-                              {category?.icon} {category?.name || 'Sin categoría'}
-                            </Badge>
-                            <Badge variant="outline">
-                              {formatPeriod(budget.period)}
-                            </Badge>
+                            <div>
+                              <h3 className="font-semibold">{budget.name}</h3>
+                              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                {category && (
+                                  <>
+                                    <span>{category.icon}</span>
+                                    <span>{category.name}</span>
+                                    <span>•</span>
+                                  </>
+                                )}
+                                <span>{formatPeriod(budget.period)}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={percentage >= 100 ? "destructive" : percentage >= 80 ? "secondary" : "default"}>
+                              {percentage.toFixed(1)}%
+                            </Badge>
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => handleDeleteBudget(budget.id, budget.name)}
-                              className="text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span>Gastado: ${spent.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
-                            <span>Límite: ${budget.amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
+                            <span>Gastado: {formatCurrency(spent)}</span>
+                            <span>Límite: {formatCurrency(budget.amount)}</span>
                           </div>
-                          
-                          <Progress 
-                            value={Math.min(percentage, 100)} 
-                            className="h-2"
-                          />
-                          
-                          <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>{percentage.toFixed(1)}% utilizado</span>
-                            <span className={remaining >= 0 ? 'text-green-600' : 'text-red-600'}>
-                              {remaining >= 0 
-                                ? `$${remaining.toLocaleString('es-ES', { minimumFractionDigits: 2 })} restante` 
-                                : `$${Math.abs(remaining).toLocaleString('es-ES', { minimumFractionDigits: 2 })} excedido`
-                              }
+                          <Progress value={Math.min(percentage, 100)} className="h-2" />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>
+                              {remaining >= 0 ? `Restante: ${formatCurrency(remaining)}` : `Excedido: ${formatCurrency(Math.abs(remaining))}`}
                             </span>
-                          </div>
-                          
-                          <div className="flex justify-between text-xs text-muted-foreground pt-2">
-                            <span>Inicio: {formatDate(budget.start_date)}</span>
-                            <span>Fin: {formatDate(budget.end_date)}</span>
+                            <span>
+                              {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
+                            </span>
                           </div>
                         </div>
                       </div>

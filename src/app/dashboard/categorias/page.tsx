@@ -1,22 +1,24 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/hooks/use-toast"
-import { useCategories } from "@/hooks/useCategories"
+import { useState } from 'react'
+import { useCategories } from '@/hooks/useCategories'
+import { useFinancialContext } from '@/hooks/useFinancialContext'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
 import { 
+  Tag, 
+  TrendingUp, 
+  TrendingDown, 
   Plus, 
-  Trash2, 
-  Tag,
-  TrendingUp,
-  TrendingDown,
-  Loader2
-} from "lucide-react"
+  Loader2, 
+  Trash2,
+  Edit
+} from 'lucide-react'
 
 export default function CategoriasPage() {
   const [nombreCategoria, setNombreCategoria] = useState('')
@@ -24,14 +26,16 @@ export default function CategoriasPage() {
   const [iconoCategoria, setIconoCategoria] = useState('🏷️')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { toast } = useToast()
+  const { currentContext } = useFinancialContext()
   const { 
     categories, 
     loading, 
     createCategory, 
     deleteCategory,
     getCategoriesByType 
-  } = useCategories()
+  } = useCategories(currentContext?.id)
+  
+  const { toast } = useToast()
 
   const ingresos = getCategoriesByType('income')
   const egresos = getCategoriesByType('expense')
@@ -39,10 +43,46 @@ export default function CategoriasPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!nombreCategoria.trim()) {
+    // Validaciones del frontend
+    const trimmedName = nombreCategoria.trim()
+    
+    if (!trimmedName) {
       toast({
         title: "Error",
         description: "Por favor ingresa un nombre para la categoría",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (trimmedName.length < 2) {
+      toast({
+        title: "Error",
+        description: "El nombre debe tener al menos 2 caracteres",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (trimmedName.length > 50) {
+      toast({
+        title: "Error",
+        description: "El nombre no puede exceder 50 caracteres",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Verificar duplicados en el frontend (validación adicional)
+    const existingCategories = getCategoriesByType(tipoCategoria)
+    const isDuplicate = existingCategories.some(
+      cat => cat.name.toLowerCase() === trimmedName.toLowerCase()
+    )
+
+    if (isDuplicate) {
+      toast({
+        title: "Error",
+        description: `Ya existe una categoría de ${tipoCategoria === 'income' ? 'ingresos' : 'egresos'} con el nombre "${trimmedName}"`,
         variant: "destructive"
       })
       return
@@ -52,10 +92,11 @@ export default function CategoriasPage() {
     
     try {
       await createCategory({
-        name: nombreCategoria.trim(),
+        name: trimmedName,
         type: tipoCategoria,
         icon: iconoCategoria,
-        color: tipoCategoria === 'income' ? '#10b981' : '#ef4444' // Verde para ingresos, rojo para egresos
+        color: tipoCategoria === 'income' ? '#10b981' : '#ef4444',
+        context_id: currentContext?.id
       })
 
       // Limpiar formulario
@@ -66,10 +107,10 @@ export default function CategoriasPage() {
         title: "¡Éxito!",
         description: "Categoría creada correctamente",
       })
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo crear la categoría. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudo crear la categoría. Inténtalo de nuevo.",
         variant: "destructive"
       })
     } finally {
@@ -88,10 +129,10 @@ export default function CategoriasPage() {
         title: "Categoría eliminada",
         description: `La categoría "${name}" ha sido eliminada correctamente`,
       })
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo eliminar la categoría. Puede que tenga movimientos asociados.",
+        description: error instanceof Error ? error.message : "No se pudo eliminar la categoría. Puede que tenga movimientos asociados.",
         variant: "destructive"
       })
     }
@@ -132,9 +173,13 @@ export default function CategoriasPage() {
                     className="pl-10"
                     value={nombreCategoria}
                     onChange={(e) => setNombreCategoria(e.target.value)}
+                    maxLength={50}
                     required
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {nombreCategoria.length}/50 caracteres
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -238,7 +283,6 @@ export default function CategoriasPage() {
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
-                                className="text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -263,7 +307,7 @@ export default function CategoriasPage() {
                               <span className="text-lg">{categoria.icon}</span>
                               <div>
                                 <p className="font-medium">{categoria.name}</p>
-                                <Badge variant="secondary" className="bg-red-600 text-white">
+                                <Badge variant="destructive">
                                   <TrendingDown className="mr-1 h-3 w-3" />
                                   Egreso
                                 </Badge>
@@ -274,7 +318,6 @@ export default function CategoriasPage() {
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
-                                className="text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
