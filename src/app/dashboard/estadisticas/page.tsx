@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Loader2 } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -20,10 +20,38 @@ import {
   Area
 } from 'recharts'
 import { useStatistics } from '@/hooks/useStatistics'
+import { useActiveFinancialContext } from '@/providers/financial-context-provider'
 
 export default function EstadisticasPage() {
+  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
   const [periodo, setPeriodo] = useState<'month' | 'year'>('month')
-  const { data, loading, error } = useStatistics(periodo)
+  const { data, loading, error } = useStatistics(periodo, activeContext?.id)
+
+  // Show loading state if context is loading
+  if (contextLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Cargando contexto financiero...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if no active context
+  if (!activeContext) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="text-center py-8">
+          <h2 className="text-xl font-semibold mb-2">No hay contexto financiero activo</h2>
+          <p className="text-muted-foreground">
+            Selecciona un contexto financiero en la configuración para ver las estadísticas.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -65,7 +93,12 @@ export default function EstadisticasPage() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Estadísticas</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Estadísticas</h1>
+          <p className="text-muted-foreground">
+            Contexto: {activeContext.name}
+          </p>
+        </div>
         
         {/* Selector de Período */}
         <div className="flex space-x-2">

@@ -105,11 +105,12 @@ export class CategoryService {
       .insert({
         ...categoryData,
         name: categoryData.name.trim(),
-        user_id: userId
+        user_id: userId,
+        context_id: categoryData.context_id
       })
       .select()
       .single()
-
+  
     if (error) throw error
     return data
   }

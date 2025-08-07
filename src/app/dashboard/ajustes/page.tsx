@@ -11,7 +11,22 @@ import { useSettings } from '@/hooks/useSettings'
 import { Loader2, User, Folder, Settings, Shield } from 'lucide-react'
 
 export default function AjustesPage() {
-  const { loading, error } = useSettings()
+  const { 
+    profile, 
+    context, 
+    contextMembers, 
+    preferences, 
+    loading, 
+    error, 
+    updateProfile, 
+    updatePreferences, 
+    updateContext, 
+    inviteMember, 
+    removeMember, 
+    signOut, 
+    deleteAccount, 
+    clearError 
+  } = useSettings()
   const [activeTab, setActiveTab] = useState("profile")
 
   if (loading) {
@@ -90,7 +105,11 @@ export default function AjustesPage() {
               {/* Tab Contents */}
               <TabsContent value="profile" className="mt-0">
                 <div className="max-w-4xl">
-                  <ProfileSettings />
+                  <ProfileSettings 
+                    profile={profile} 
+                    updateProfile={updateProfile} 
+                    clearError={clearError} 
+                  />
                 </div>
               </TabsContent>
 
@@ -102,13 +121,19 @@ export default function AjustesPage() {
 
               <TabsContent value="preferences" className="mt-0">
                 <div className="max-w-4xl">
-                  <AppPreferences />
+                  <AppPreferences 
+                    preferences={preferences}
+                    updatePreferences={updatePreferences}
+                  />
                 </div>
               </TabsContent>
 
               <TabsContent value="security" className="mt-0">
                 <div className="max-w-4xl">
-                  <AccountSecurity />
+                  <AccountSecurity 
+                    signOut={signOut}
+                    deleteAccount={deleteAccount}
+                  />
                 </div>
               </TabsContent>
             </Tabs>

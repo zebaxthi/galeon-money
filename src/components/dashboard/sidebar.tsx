@@ -75,15 +75,15 @@ export function Sidebar({ className }: SidebarProps) {
   }
 
   const getUserInitials = () => {
-    if (profile?.full_name) {
-      return profile.full_name
+    if (profile?.name) {
+      return profile.name
         .split(' ')
         .map(name => name[0])
         .join('')
         .toUpperCase()
         .slice(0, 2)
     }
-    return user?.email?.[0]?.toUpperCase() || 'U'
+    return profile?.email?.slice(0, 2).toUpperCase() || 'U'
   }
 
   return (

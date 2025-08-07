@@ -17,8 +17,10 @@ import {
 } from "lucide-react"
 import { useExport } from "@/hooks/useExport"
 import { useMovements } from "@/hooks/useMovements"
+import { useActiveFinancialContext } from "@/providers/financial-context-provider"
 
 export default function ExportarPage() {
+  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaFin, setFechaFin] = useState('')
   const [tipoReporte, setTipoReporte] = useState('completo')
@@ -27,7 +29,7 @@ export default function ExportarPage() {
   const [incluirEstadisticas, setIncluirEstadisticas] = useState(false)
 
   const { generateExport, loading, error } = useExport()
-  const { movements } = useMovements()
+  const { movements } = useMovements(activeContext?.id)
   const { toast } = useToast()
 
   // Establecer fechas por defecto (último mes)
@@ -40,6 +42,32 @@ export default function ExportarPage() {
     setFechaFin(endOfLastMonth.toISOString().split('T')[0])
   }, [])
 
+  // Show loading state if context is loading
+  if (contextLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Cargando contexto financiero...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if no active context
+  if (!activeContext) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <h2 className="text-xl font-semibold mb-2">No hay contexto financiero activo</h2>
+          <p className="text-muted-foreground">
+            Selecciona un contexto financiero en la configuración para exportar datos.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const handleExport = async () => {
     try {
       const result = await generateExport(
@@ -50,7 +78,8 @@ export default function ExportarPage() {
           incluirCategorias,
           incluirPresupuestos,
           incluirEstadisticas
-        }
+        },
+        activeContext.id
       )
 
       toast({
@@ -112,7 +141,7 @@ export default function ExportarPage() {
       <div>
         <h1 className="text-3xl font-bold">Exportar Datos</h1>
         <p className="text-muted-foreground">
-          Genera reportes en Excel de tus datos financieros
+          Genera reportes en Excel de tus datos financieros del contexto: {activeContext.name}
         </p>
       </div>
 

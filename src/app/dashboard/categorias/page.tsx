@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useCategories } from '@/hooks/useCategories'
-import { useFinancialContext } from '@/hooks/useFinancialContext'
+import { useActiveFinancialContext } from '@/providers/financial-context-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,8 +19,10 @@ import {
   Loader2, 
   Trash2,
   Search,
-  Filter
+  Filter,
+  Wallet
 } from 'lucide-react'
+import Link from "next/link"
 
 export default function CategoriasPage() {
   const [nombreCategoria, setNombreCategoria] = useState('')
@@ -30,16 +32,48 @@ export default function CategoriasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
 
-  const { currentContext } = useFinancialContext()
+  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
   const { 
     categories, 
     loading, 
     createCategory, 
     deleteCategory,
     getCategoriesByType 
-  } = useCategories(currentContext?.id)
+  } = useCategories(activeContext?.id)
   
   const { toast } = useToast()
+
+  // Mostrar loading si el contexto está cargando
+  if (contextLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando contexto financiero...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Mostrar mensaje si no hay contexto activo
+  if (!activeContext) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-xl font-semibold mb-2">No hay contexto financiero activo</h2>
+          <p className="text-muted-foreground mb-4">
+            Necesitas crear o seleccionar un contexto financiero para gestionar categorías.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard/ajustes">
+              Ir a Configuración
+            </Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const ingresos = getCategoriesByType('income')
   const egresos = getCategoriesByType('expense')
@@ -110,7 +144,7 @@ export default function CategoriasPage() {
         type: tipoCategoria,
         icon: iconoCategoria,
         color: tipoCategoria === 'income' ? '#10b981' : '#ef4444',
-        context_id: currentContext?.id
+        context_id: activeContext.id
       })
 
       // Limpiar formulario
@@ -157,7 +191,7 @@ export default function CategoriasPage() {
       <div>
         <h1 className="text-3xl font-bold">Categorías</h1>
         <p className="text-muted-foreground">
-          Organiza tus movimientos con categorías personalizadas
+          Organiza tus movimientos con categorías personalizadas - {activeContext.name}
         </p>
       </div>
 
@@ -207,12 +241,19 @@ export default function CategoriasPage() {
                 </Tabs>
               </div>
 
-              <EmojiPicker
-                value={iconoCategoria}
-                onChange={setIconoCategoria}
-              />
+              <div className="space-y-2">
+                <Label>Icono</Label>
+                <EmojiPicker
+                  value={iconoCategoria}
+                  onChange={setIconoCategoria}
+                />
+              </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -230,133 +271,130 @@ export default function CategoriasPage() {
         </Card>
 
         {/* Lista de Categorías */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Categorías Existentes</CardTitle>
-              <CardDescription>
-                Gestiona tus categorías de ingresos y egresos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Filtros y búsqueda */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar categorías..."
-                    className="pl-10"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <Tabs value={filterType} onValueChange={(value) => setFilterType(value as 'all' | 'income' | 'expense')}>
-                    <TabsList>
-                      <TabsTrigger value="all">Todas</TabsTrigger>
-                      <TabsTrigger value="income">Ingresos</TabsTrigger>
-                      <TabsTrigger value="expense">Egresos</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-              </div>
+        <div className="lg:col-span-2 space-y-6">
+          {/* Filtros */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar categorías..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Tabs value={filterType} onValueChange={(value) => setFilterType(value as 'all' | 'income' | 'expense')}>
+                <TabsList>
+                  <TabsTrigger value="all">Todas</TabsTrigger>
+                  <TabsTrigger value="income">Ingresos</TabsTrigger>
+                  <TabsTrigger value="expense">Egresos</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="ml-2">Cargando categorías...</span>
-                </div>
-              ) : filteredCategories.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  {searchTerm || filterType !== 'all' ? (
-                    <>
-                      <p>No se encontraron categorías</p>
-                      <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
-                    </>
-                  ) : (
-                    <>
-                      <p>No hay categorías registradas</p>
-                      <p className="text-sm">Crea tu primera categoría usando el formulario</p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-6 max-h-96 overflow-y-auto">
-                  {/* Categorías de Ingresos */}
-                  {filteredIngresos.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-green-600 mb-3 flex items-center">
-                        <TrendingUp className="mr-2 h-4 w-4" />
-                        Ingresos ({filteredIngresos.length})
-                      </h3>
-                      <div className="space-y-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Cargando categorías...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Categorías de Ingresos */}
+              {(filterType === 'all' || filterType === 'income') && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-green-600">
+                      <TrendingUp className="mr-2 h-5 w-5" />
+                      Categorías de Ingresos ({filteredIngresos.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {filteredIngresos.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        No hay categorías de ingresos
+                      </p>
+                    ) : (
+                      <div className="grid gap-3 sm:grid-cols-2">
                         {filteredIngresos.map((categoria) => (
-                          <div key={categoria.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div
+                            key={categoria.id}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
                             <div className="flex items-center space-x-3">
                               <span className="text-lg">{categoria.icon}</span>
                               <div>
                                 <p className="font-medium">{categoria.name}</p>
-                                <Badge variant="default" className="bg-green-600">
-                                  <TrendingUp className="mr-1 h-3 w-3" />
+                                <Badge variant="secondary" className="text-xs">
                                   Ingreso
                                 </Badge>
                               </div>
                             </div>
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
-                  {/* Categorías de Egresos */}
-                  {filteredEgresos.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-red-600 mb-3 flex items-center">
-                        <TrendingDown className="mr-2 h-4 w-4" />
-                        Egresos ({filteredEgresos.length})
-                      </h3>
-                      <div className="space-y-2">
+              {/* Categorías de Egresos */}
+              {(filterType === 'all' || filterType === 'expense') && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-red-600">
+                      <TrendingDown className="mr-2 h-5 w-5" />
+                      Categorías de Egresos ({filteredEgresos.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {filteredEgresos.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        No hay categorías de egresos
+                      </p>
+                    ) : (
+                      <div className="grid gap-3 sm:grid-cols-2">
                         {filteredEgresos.map((categoria) => (
-                          <div key={categoria.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div
+                            key={categoria.id}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
                             <div className="flex items-center space-x-3">
                               <span className="text-lg">{categoria.icon}</span>
                               <div>
                                 <p className="font-medium">{categoria.name}</p>
-                                <Badge variant="destructive">
-                                  <TrendingDown className="mr-1 h-3 w-3" />
+                                <Badge variant="secondary" className="text-xs">
                                   Egreso
                                 </Badge>
                               </div>
                             </div>
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteCategory(categoria.id, categoria.name)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
       </div>
     </div>

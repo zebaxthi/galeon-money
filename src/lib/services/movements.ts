@@ -86,7 +86,8 @@ export class MovementService {
         ...movementData,
         user_id: userId,
         created_by: userId,
-        movement_date: movementData.movement_date || new Date().toISOString().split('T')[0]
+        movement_date: movementData.movement_date || new Date().toISOString().split('T')[0],
+        context_id: movementData.context_id
       })
       .select(`
         *,
@@ -104,7 +105,7 @@ export class MovementService {
         )
       `)
       .single()
-
+  
     if (error) throw error
     return {
       ...data,
@@ -134,7 +135,7 @@ export class MovementService {
         )
       `)
       .single()
-
+  
     if (error) throw error
     return {
       ...data,

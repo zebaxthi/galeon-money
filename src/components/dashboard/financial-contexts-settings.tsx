@@ -254,7 +254,7 @@ export function FinancialContextsSettings() {
             disabled={contextLoading}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecciona un contexto" />
+              <SelectValue placeholder={activeContext?.name} />
             </SelectTrigger>
             <SelectContent>
               {userContexts.map((context) => (

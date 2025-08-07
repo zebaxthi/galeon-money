@@ -11,8 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useMovements } from "@/hooks/useMovements"
 import { useCategories } from "@/hooks/useCategories"
+import { useActiveFinancialContext } from "@/providers/financial-context-provider"
 import { useToast } from "@/hooks/use-toast"
-import { MovementService } from "@/lib/services/movements"
+import { 
+  getCurrentBogotaDate, 
+  dateInputToUTC, 
+  dateUTCToBogota, 
+  formatDateForDisplay,
+  formatShortDate 
+} from "@/lib/utils"
 import { 
   Plus, 
   Minus, 
@@ -25,7 +32,6 @@ import {
   Trash2,
   Loader2
 } from "lucide-react"
-import { DatePicker } from "@/components/ui/date-picker"
 
 interface Movement {
   id: string
@@ -38,6 +44,7 @@ interface Movement {
 }
 
 export default function MovimientosPage() {
+  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
   const currentDate = new Date()
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
@@ -46,7 +53,7 @@ export default function MovimientosPage() {
   const [tipo, setTipo] = useState<'income' | 'expense'>('expense')
   const [monto, setMonto] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(getCurrentBogotaDate())
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -65,9 +72,41 @@ export default function MovimientosPage() {
   const [editDescription, setEditDescription] = useState('')
   const [isEditSubmitting, setIsEditSubmitting] = useState(false)
 
-  const { movements, loading: movementsLoading, refetch } = useMovements(undefined, undefined, selectedYear, selectedMonth)
-  const { categories, loading: categoriesLoading } = useCategories()
+  const { 
+    movements, 
+    loading: movementsLoading, 
+    createMovement, 
+    updateMovement, 
+    deleteMovement 
+  } = useMovements(activeContext?.id, undefined, selectedYear, selectedMonth)
+  const { categories, loading: categoriesLoading } = useCategories(activeContext?.id)
   const { toast } = useToast()
+
+  // Show loading state if context is loading
+  if (contextLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Cargando contexto financiero...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if no active context
+  if (!activeContext) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <h2 className="text-xl font-semibold mb-2">No hay contexto financiero activo</h2>
+          <p className="text-muted-foreground">
+            Selecciona un contexto financiero en la configuración para gestionar tus movimientos.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   // Generar opciones de años (últimos 3 años + año actual + próximo año)
   const yearOptions = []
@@ -107,21 +146,20 @@ export default function MovimientosPage() {
     setIsSubmitting(true)
 
     try {
-      await MovementService.createMovement({
+      createMovement({
         amount: parseFloat(monto),
         type: tipo,
         description: description || undefined,
         category_id: categoryId || undefined,
-        movement_date: fecha
+        movement_date: dateInputToUTC(fecha), // Convertir a UTC
+        context_id: activeContext?.id
       })
 
       // Reset form
       setMonto('')
       setDescription('')
       setCategoryId('')
-      setFecha(new Date().toISOString().split('T')[0])
-      
-      await refetch()
+      setFecha(getCurrentBogotaDate())
       
       toast({
         title: "Movimiento registrado",
@@ -143,7 +181,7 @@ export default function MovimientosPage() {
     setEditTipo(movement.type)
     setEditMonto(movement.amount.toString())
     setEditCategoryId(movement.category_id || '')
-    setEditFecha(movement.movement_date)
+    setEditFecha(dateUTCToBogota(movement.movement_date)) // Convertir de UTC a Bogotá
     setEditDescription(movement.description || '')
     setIsEditDialogOpen(true)
   }
@@ -155,17 +193,20 @@ export default function MovimientosPage() {
     setIsEditSubmitting(true)
 
     try {
-      await MovementService.updateMovement(editingMovement.id, {
-        amount: parseFloat(editMonto),
-        type: editTipo,
-        description: editDescription || undefined,
-        category_id: editCategoryId || undefined,
-        movement_date: editFecha
+      updateMovement({
+        id: editingMovement.id,
+        updates: {
+          amount: parseFloat(editMonto),
+          type: editTipo,
+          description: editDescription || undefined,
+          category_id: editCategoryId || undefined,
+          movement_date: dateInputToUTC(editFecha), // Convertir a UTC
+          context_id: activeContext?.id
+        }
       })
 
       setIsEditDialogOpen(false)
       setEditingMovement(null)
-      await refetch()
       
       toast({
         title: "Movimiento actualizado",
@@ -188,8 +229,7 @@ export default function MovimientosPage() {
     }
 
     try {
-      await MovementService.deleteMovement(id)
-      await refetch()
+      deleteMovement(id)
       
       toast({
         title: "Movimiento eliminado",
@@ -343,10 +383,12 @@ export default function MovimientosPage() {
               {/* Fecha */}
               <div className="space-y-2">
                 <Label htmlFor="fecha">Fecha</Label>
-                <DatePicker
+                <Input
+                  id="fecha"
+                  type="date"
                   value={fecha}
-                  onChange={setFecha}
-                  placeholder="Seleccionar fecha"
+                  onChange={(e) => setFecha(e.target.value)}
+                  required
                 />
               </div>
 
@@ -478,9 +520,9 @@ export default function MovimientosPage() {
                             <Badge variant="secondary" className="text-xs w-fit">
                               <span className="truncate">{category ? `${category.icon} ${category.name}` : '🏷️ Sin categoría'}</span>
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(movement.movement_date)}
-                            </span>
+                            <div className="text-sm text-muted-foreground">
+                              {formatDateForDisplay(movement.movement_date, true)} {/* true indica que viene de UTC */}
+                            </div>
                           </div>
                         </div>
                       </div>

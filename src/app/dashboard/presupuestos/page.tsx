@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useBudgets, useBudgetProgress } from '@/hooks/useBudgets'
 import { useCategories } from '@/hooks/useCategories'
-import { useFinancialContext } from '@/hooks/useFinancialContext'
+import { useActiveFinancialContext } from '@/providers/financial-context-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
+import { 
+  getCurrentBogotaDate, 
+  dateInputToUTC, 
+  dateUTCToBogota, 
+  formatDateForDisplay 
+} from '@/lib/utils'
 import { 
   Target, 
   DollarSign, 
@@ -23,39 +29,91 @@ import {
   Plus,
   Trash2,
   Search,
-  Filter
+  Filter,
+  Wallet
 } from 'lucide-react'
-import { DatePicker } from "@/components/ui/date-picker"
+import Link from "next/link"
 
 export default function PresupuestosPage() {
+  // Todos los hooks deben ir al principio, antes de cualquier return
   const [nombrePresupuesto, setNombrePresupuesto] = useState('')
   const [montoPresupuesto, setMontoPresupuesto] = useState('')
   const [categoriaPresupuesto, setCategoriaPresupuesto] = useState('')
   const [periodoPresupuesto, setPeriodoPresupuesto] = useState('monthly')
-  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().split('T')[0])
-  const [fechaFin, setFechaFin] = useState(() => {
-    // Calcular fecha fin inicial basada en la fecha de inicio y período por defecto
-    const start = new Date()
-    const end = new Date(start)
-    end.setMonth(start.getMonth() + 1)
-    end.setDate(start.getDate() - 1)
-    return end.toISOString().split('T')[0]
-  })
-  const [editFechaInicio, setEditFechaInicio] = useState('')
-  const [editFechaFin, setEditFechaFin] = useState('')
-
-
+  const [fechaInicio, setFechaInicio] = useState(getCurrentBogotaDate())
+  const [fechaFin, setFechaFin] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'exceeded' | 'completed'>('all')
 
-  const { currentContext } = useFinancialContext()
-  const { budgets, loading, createBudget, deleteBudget } = useBudgets(currentContext?.id)
-  const { budgetProgress, loading: progressLoading } = useBudgetProgress(currentContext?.id)
-  const { categories, getCategoriesByType } = useCategories(currentContext?.id)
+  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { budgets, loading, createBudget, deleteBudget } = useBudgets(activeContext?.id)
+  const { budgetProgress, loading: progressLoading } = useBudgetProgress(activeContext?.id)
+  const { categories, getCategoriesByType } = useCategories(activeContext?.id)
   const { toast } = useToast()
 
+  // Calcular fecha de fin automática
+  const calculateEndDate = (startDate: string, period: string) => {
+    const start = new Date(startDate)
+    let end = new Date(start)
+    
+    switch (period) {
+      case 'weekly':
+        end.setDate(start.getDate() + 6)
+        break
+      case 'monthly':
+        end.setMonth(start.getMonth() + 1)
+        end.setDate(start.getDate() - 1)
+        break
+      case 'yearly':
+        end.setFullYear(start.getFullYear() + 1)
+        end.setDate(start.getDate() - 1)
+        break
+    }
+    
+    return end.toISOString().split('T')[0]
+  }
+
+  // useEffect debe ir después de todos los otros hooks pero antes de los returns
+  useEffect(() => {
+    if (fechaInicio) {
+      const newEndDate = calculateEndDate(fechaInicio, periodoPresupuesto)
+      setFechaFin(newEndDate)
+    }
+  }, [fechaInicio, periodoPresupuesto])
+
   const expenseCategories = getCategoriesByType('expense')
+
+  // Ahora sí pueden ir los returns condicionales
+  if (contextLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando contexto financiero...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!activeContext) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-xl font-semibold mb-2">No hay contexto financiero activo</h2>
+          <p className="text-muted-foreground mb-4">
+            Necesitas crear o seleccionar un contexto financiero para gestionar presupuestos.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard/ajustes">
+              Ir a Configuración
+            </Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   // Filtrar presupuestos
   const filteredBudgets = budgets.filter(budget => {
@@ -66,7 +124,7 @@ export default function PresupuestosPage() {
 
     if (filterStatus === 'all') return true
 
-    const progress = budgetProgress?.find(p => p.budget_id === budget.id)
+    const progress = budgetProgress?.find(p => p.id === budget.id)
     if (!progress) return filterStatus === 'active'
 
     const percentage = (progress.spent / budget.amount) * 100
@@ -83,54 +141,12 @@ export default function PresupuestosPage() {
     }
   })
 
-  // Calcular fecha de fin automática
-  const calculateEndDate = (startDate: string, period: string) => {
-    const start = new Date(startDate)
-    let end = new Date(start)
-    
-    switch (period) {
-      case 'weekly':
-        end.setDate(start.getDate() + 6)
-        break
-      case 'monthly':
-        end.setMonth(start.getMonth() + 1)
-        end.setDate(start.getDate() - 1)
-        break
-      case 'quarterly':
-        end.setMonth(start.getMonth() + 3)
-        end.setDate(start.getDate() - 1)
-        break
-      case 'yearly':
-        end.setFullYear(start.getFullYear() + 1)
-        end.setDate(start.getDate() - 1)
-        break
-    }
-    
-    return end.toISOString().split('T')[0]
-  }
-
-  // Inicializar fecha fin cuando se carga el componente
-  useEffect(() => {
-    if (fechaInicio && !fechaFin) {
-      setFechaFin(calculateEndDate(fechaInicio, periodoPresupuesto))
-    }
-  }, [fechaInicio, periodoPresupuesto]) // Remover fechaFin de las dependencias
-
-  // Recalcular fecha fin cuando cambian fechaInicio o periodoPresupuesto
-  useEffect(() => {
-    if (fechaInicio) {
-      setFechaFin(calculateEndDate(fechaInicio, periodoPresupuesto))
-    }
-  }, [fechaInicio, periodoPresupuesto])
-
   const handlePeriodChange = (period: string) => {
     setPeriodoPresupuesto(period)
-    // Ya no necesitamos calcular manualmente aquí porque el useEffect lo hará
   }
 
   const handleStartDateChange = (date: string) => {
     setFechaInicio(date)
-    // Ya no necesitamos calcular manualmente aquí porque el useEffect lo hará
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -209,22 +225,23 @@ export default function PresupuestosPage() {
         name: trimmedName,
         amount: parseFloat(montoPresupuesto),
         category_id: categoriaPresupuesto,
-        period: periodoPresupuesto as 'weekly' | 'monthly' | 'quarterly' | 'yearly',
-        start_date: fechaInicio,
-        end_date: fechaFin,
-        context_id: currentContext?.id
+        period: periodoPresupuesto as 'weekly' | 'monthly' | 'yearly',
+        start_date: dateInputToUTC(fechaInicio), // Convertir a UTC
+        end_date: dateInputToUTC(fechaFin), // Convertir a UTC
+        context_id: activeContext?.id
       })
 
-      // Limpiar formulario
+      // Reset form
       setNombrePresupuesto('')
       setMontoPresupuesto('')
       setCategoriaPresupuesto('')
-      setFechaInicio(new Date().toISOString().split('T')[0])
+      setPeriodoPresupuesto('monthly')
+      setFechaInicio(getCurrentBogotaDate())
       setFechaFin('')
-
+      
       toast({
-        title: "¡Éxito!",
-        description: "Presupuesto creado correctamente",
+        title: "Presupuesto creado",
+        description: `Presupuesto "${trimmedName}" creado exitosamente.`
       })
     } catch (error) {
       toast({
@@ -285,11 +302,7 @@ export default function PresupuestosPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    return formatDateForDisplay(dateUTCToBogota(dateString), true)
   }
 
   return (
@@ -382,7 +395,6 @@ export default function PresupuestosPage() {
                   <SelectContent>
                     <SelectItem value="weekly">Semanal</SelectItem>
                     <SelectItem value="monthly">Mensual</SelectItem>
-                    <SelectItem value="quarterly">Trimestral</SelectItem>
                     <SelectItem value="yearly">Anual</SelectItem>
                   </SelectContent>
                 </Select>
@@ -392,20 +404,24 @@ export default function PresupuestosPage() {
                 {/* Fecha Inicio */}
                 <div className="space-y-2">
                   <Label htmlFor="fechaInicio">Fecha Inicio</Label>
-                  <DatePicker
+                  <Input
+                    id="fechaInicio"
+                    type="date"
                     value={fechaInicio}
-                    onChange={handleStartDateChange}
-                    placeholder="Seleccionar fecha de inicio"
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    required
                   />
                 </div>
 
                 {/* Fecha Fin */}
                 <div className="space-y-2">
                   <Label htmlFor="fechaFin">Fecha Fin</Label>
-                  <DatePicker
+                  <Input
+                    id="fechaFin"
+                    type="date"
                     value={fechaFin}
-                    onChange={setFechaFin}
-                    placeholder="Seleccionar fecha de fin"
+                    onChange={(e) => setFechaFin(e.target.value)}
+                    required
                   />
                 </div>
               </div>
@@ -488,7 +504,7 @@ export default function PresupuestosPage() {
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {filteredBudgets.map((budget) => {
                     const category = categories.find(c => c.id === budget.category_id)
-                    const progress = budgetProgress?.find(p => p.budget_id === budget.id)
+                    const progress = budgetProgress?.find(p => p.id === budget.id)
                     const spent = progress?.spent || 0
                     const percentage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
 

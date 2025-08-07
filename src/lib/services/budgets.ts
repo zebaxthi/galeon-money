@@ -157,7 +157,7 @@ export class BudgetService {
     if (validationErrors.length > 0) {
       throw new Error(validationErrors.join(', '))
     }
-
+  
     // Validar que la categoría existe y es de tipo expense
     if (budgetData.category_id) {
       const { data: category, error: categoryError } = await supabase
@@ -166,15 +166,15 @@ export class BudgetService {
         .eq('id', budgetData.category_id)
         .eq('user_id', userId)
         .single()
-
+  
       if (categoryError || !category) {
         throw new Error('La categoría seleccionada no existe o no tienes permisos para usarla')
       }
-
+  
       if (category.type !== 'expense') {
         throw new Error('Solo se pueden crear presupuestos para categorías de egresos')
       }
-
+  
       // Validar unicidad (no presupuestos solapados para la misma categoría)
       const uniquenessCheck = await this.validateBudgetUniqueness(
         userId,
@@ -183,7 +183,7 @@ export class BudgetService {
         budgetData.end_date,
         budgetData.context_id
       )
-
+  
       if (!uniquenessCheck.isUnique && uniquenessCheck.conflictingBudget) {
         const conflictingBudget = uniquenessCheck.conflictingBudget
         throw new Error(
@@ -191,13 +191,14 @@ export class BudgetService {
         )
       }
     }
-
+  
     const { data, error } = await supabase
       .from('budgets')
       .insert({
         ...budgetData,
         name: budgetData.name.trim(),
-        user_id: userId
+        user_id: userId,
+        context_id: budgetData.context_id
       })
       .select(`
         *,
@@ -210,7 +211,7 @@ export class BudgetService {
         )
       `)
       .single()
-
+  
     if (error) throw error
     return {
       ...data,

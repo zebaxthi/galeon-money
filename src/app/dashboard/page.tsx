@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMovements, useMovementStats } from "@/hooks/useMovements"
 import { useBudgetProgress } from "@/hooks/useBudgets"
 import { useCategories } from "@/hooks/useCategories"
+import { useActiveFinancialContext } from "@/providers/financial-context-provider"
+import { formatDateForDisplay } from "@/lib/utils"
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -25,10 +27,12 @@ export default function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
 
-  const { movements, loading: movementsLoading } = useMovements(undefined, 5)
-  const { stats, loading: statsLoading } = useMovementStats(undefined, selectedYear, selectedMonth)
-  const { budgetProgress, loading: budgetLoading } = useBudgetProgress()
-  const { categories } = useCategories()
+  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  
+  const { movements, loading: movementsLoading } = useMovements(activeContext?.id, 5)
+  const { stats, loading: statsLoading } = useMovementStats(activeContext?.id, selectedYear, selectedMonth)
+  const { budgetProgress, loading: budgetLoading } = useBudgetProgress(activeContext?.id)
+  const { categories } = useCategories(activeContext?.id)
 
   // Generar opciones de años (últimos 3 años + año actual + próximo año)
   const yearOptions = []
@@ -56,13 +60,42 @@ export default function DashboardPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      month: 'short',
-      day: 'numeric'
-    })
+    return formatDateForDisplay(dateString, true) // true indica que viene de UTC
   }
 
   const isCurrentMonth = selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()
+
+  // Mostrar loading si el contexto está cargando
+  if (contextLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando contexto financiero...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Mostrar mensaje si no hay contexto activo
+  if (!activeContext) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-xl font-semibold mb-2">No hay contexto financiero activo</h2>
+          <p className="text-muted-foreground mb-4">
+            Necesitas crear o seleccionar un contexto financiero para ver tus datos.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard/ajustes">
+              Ir a Configuración
+            </Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-full overflow-hidden">
@@ -70,7 +103,7 @@ export default function DashboardPage() {
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold truncate">Dashboard</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Resumen de tu situación financiera
+            Resumen de tu situación financiera - {activeContext.name}
           </p>
         </div>
         
