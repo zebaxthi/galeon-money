@@ -70,10 +70,10 @@ export default function AjustesPage() {
   const [newMemberEmail, setNewMemberEmail] = useState('')
   
   // Estados de carga por zonas
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false) // Para perfil (avatar + datos)
-  const [isLoadingContext, setIsLoadingContext] = useState(false) // Para contexto financiero
-  const [isLoadingMembers, setIsLoadingMembers] = useState(false) // Para miembros (invitar/eliminar)
-  const [isLoadingAccount, setIsLoadingAccount] = useState(false) // Para acciones de cuenta (cerrar sesión/eliminar)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
+  const [isLoadingContext, setIsLoadingContext] = useState(false)
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false)
+  const [isLoadingAccount, setIsLoadingAccount] = useState(false)
 
   // Inicializar estados cuando se cargan los datos
   useEffect(() => {
@@ -320,53 +320,54 @@ export default function AjustesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Ajustes</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-4 lg:space-y-6">
+      <div className="px-1">
+        <h1 className="text-2xl lg:text-3xl font-bold">Ajustes</h1>
+        <p className="text-muted-foreground text-sm lg:text-base">
           Configura tu cuenta y preferencias de la aplicación
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mx-1">
           {error?.toString()}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
         {/* Perfil de Usuario */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
+        <Card className="mx-1 lg:mx-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center text-lg lg:text-xl">
               <User className="mr-2 h-5 w-5" />
               Perfil de Usuario
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Actualiza tu información personal
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="avatar">Foto de perfil</Label>
-              <div className="flex items-start space-x-4">
-                <Avatar className="h-24 w-24">
+              <Label htmlFor="avatar" className="text-sm font-medium">Foto de perfil</Label>
+              <div className="flex items-start space-x-3 lg:space-x-4">
+                <Avatar className="h-20 w-20 lg:h-24 lg:w-24 flex-shrink-0">
                   <AvatarImage src={profile?.avatar_url || ""} />
-                  <AvatarFallback className="bg-violet-600 text-white text-xl">
+                  <AvatarFallback className="bg-violet-600 text-white text-lg lg:text-xl">
                     {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 space-y-3">
-                  <div className="flex flex-wrap gap-2">
+                <div className="flex-1 space-y-3 min-w-0">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isLoadingProfile}
+                      className="flex-1 sm:flex-none"
                     >
-                      <Camera className="mr-2 h-4 w-4" />
-                      {profile?.avatar_url ? 'Cambiar foto' : 'Subir foto'}
+                      <Camera className="mr-2 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{profile?.avatar_url ? 'Cambiar foto' : 'Subir foto'}</span>
                     </Button>
                     {profile?.avatar_url && (
                       <Button
@@ -375,14 +376,14 @@ export default function AjustesPage() {
                         size="sm"
                         onClick={handleRemoveAvatar}
                         disabled={isLoadingProfile}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-none"
                       >
                         {isLoadingProfile ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
                         ) : (
-                          <Trash2 className="mr-2 h-4 w-4" />
+                          <Trash2 className="mr-2 h-4 w-4 flex-shrink-0" />
                         )}
-                        {isLoadingProfile ? 'Procesando...' : 'Eliminar'}
+                        <span className="truncate">{isLoadingProfile ? 'Procesando...' : 'Eliminar'}</span>
                       </Button>
                     )}
                   </div>
@@ -407,78 +408,81 @@ export default function AjustesPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre completo</Label>
-              <Input
-                id="nombre"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Tu nombre"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="nombre" className="text-sm font-medium">Nombre completo</Label>
                 <Input
-                  id="email"
-                  value={profile?.email || ''}
-                  disabled
-                  className="pl-10 bg-muted"
+                  id="nombre"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Tu nombre"
+                  className="text-base"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                El email no se puede cambiar por motivos de seguridad
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  placeholder="Tu número de teléfono"
-                  className="pl-10"
-                />
+              
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    value={profile?.email || ''}
+                    disabled
+                    className="pl-10 bg-muted text-base"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  El email no se puede cambiar por motivos de seguridad
+                </p>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Ubicación</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="location"
-                  value={ubicacion}
-                  onChange={(e) => setUbicacion(e.target.value)}
-                  placeholder="Tu ciudad o país"
-                  className="pl-10"
-                />
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm font-medium">Teléfono</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    value={telefono}
+                    onChange={(e) => setTelefono(e.target.value)}
+                    placeholder="Tu número de teléfono"
+                    className="pl-10 text-base"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="bio">Biografía</Label>
-              <div className="relative">
-                <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="bio"
-                  value={biografia}
-                  onChange={(e) => setBiografia(e.target.value)}
-                  placeholder="Cuéntanos un poco sobre ti"
-                  className="pl-10"
-                />
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-sm font-medium">Ubicación</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="location"
+                    value={ubicacion}
+                    onChange={(e) => setUbicacion(e.target.value)}
+                    placeholder="Tu ciudad o país"
+                    className="pl-10 text-base"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bio" className="text-sm font-medium">Biografía</Label>
+                <div className="relative">
+                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="bio"
+                    value={biografia}
+                    onChange={(e) => setBiografia(e.target.value)}
+                    placeholder="Cuéntanos un poco sobre ti"
+                    className="pl-10 text-base"
+                  />
+                </div>
               </div>
             </div>
 
             <Button 
               onClick={handleSaveProfile} 
               disabled={isLoadingProfile}
-              className="w-full"
+              className="w-full h-11"
             >
               {isLoadingProfile ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -490,6 +494,7 @@ export default function AjustesPage() {
           </CardContent>
         </Card>
 
+        {/* Resto de las cards con mejoras similares para móviles */}
         {/* Contexto Financiero Compartido */}
         <Card>
           <CardHeader>

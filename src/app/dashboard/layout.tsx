@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import { ImprovedSidebar } from "@/components/dashboard/improved-sidebar"
-import { MobileSidebar } from "@/components/dashboard/mobile-sidebar"
+import { BottomNavigation } from "@/components/dashboard/bottom-navigation"
 
 export default function DashboardLayout({
   children,
@@ -33,22 +33,35 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-80 flex-shrink-0">
-        <ImprovedSidebar />
+    <div className="min-h-screen bg-background">
+      {/* Desktop Layout */}
+      <div className="hidden lg:flex min-h-screen">
+        {/* Desktop Sidebar - Fixed */}
+        <div className="fixed left-0 top-0 h-screen w-80 flex-shrink-0 z-30">
+          <ImprovedSidebar />
+        </div>
+        
+        {/* Main Content - With left margin for sidebar */}
+        <div className="flex-1 ml-80">
+          <main className="p-6">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-      
-      {/* Mobile Sidebar */}
-      <MobileSidebar />
-      
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden min-h-screen">
+        {/* Main Content - With bottom padding for navigation */}
+        <main className="pb-20 p-4 min-h-screen">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>
+        
+        {/* Bottom Navigation */}
+        <BottomNavigation />
       </div>
     </div>
   )
