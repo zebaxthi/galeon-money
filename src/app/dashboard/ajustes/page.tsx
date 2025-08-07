@@ -68,7 +68,12 @@ export default function AjustesPage() {
   const [contextName, setContextName] = useState('')
   const [contextDescription, setContextDescription] = useState('')
   const [newMemberEmail, setNewMemberEmail] = useState('')
-  const [isLoadingAction, setIsLoadingAction] = useState(false)
+  
+  // Estados de carga por zonas
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false) // Para perfil (avatar + datos)
+  const [isLoadingContext, setIsLoadingContext] = useState(false) // Para contexto financiero
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false) // Para miembros (invitar/eliminar)
+  const [isLoadingAccount, setIsLoadingAccount] = useState(false) // Para acciones de cuenta (cerrar sesión/eliminar)
 
   // Inicializar estados cuando se cargan los datos
   useEffect(() => {
@@ -100,7 +105,7 @@ export default function AjustesPage() {
     }
 
     try {
-      setIsLoadingAction(true)
+      setIsLoadingProfile(true)
       
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}/avatar.${fileExt}`
@@ -129,142 +134,7 @@ export default function AjustesPage() {
         variant: "destructive"
       })
     } finally {
-      setIsLoadingAction(false)
-    }
-  }
-
-  // Manejar guardado de perfil
-  const handleSaveProfile = async () => {
-    try {
-      setIsLoadingAction(true)
-      clearError()
-      await updateProfile({ 
-        name: nombre,
-        phone: telefono,
-        location: ubicacion,
-        bio: biografia
-      })
-      toast({
-        title: "Éxito",
-        description: "Perfil actualizado correctamente"
-      })
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el perfil",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingAction(false)
-    }
-  }
-
-  // Manejar actualización de contexto
-  const handleUpdateContext = async () => {
-    try {
-      setIsLoadingAction(true)
-      clearError()
-      await updateContext({ 
-        name: contextName, 
-        description: contextDescription 
-      })
-      toast({
-        title: "Éxito",
-        description: "Contexto actualizado correctamente"
-      })
-    } catch (error) {
-      console.error('Error updating context:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el contexto",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingAction(false)
-    }
-  }
-
-  // Manejar invitación de miembro
-  const handleInviteMember = async () => {
-    if (!newMemberEmail.trim()) return
-    
-    try {
-      setIsLoadingAction(true)
-      clearError()
-      await inviteMember(newMemberEmail)
-      setNewMemberEmail('')
-      toast({
-        title: "Éxito",
-        description: "Miembro invitado correctamente"
-      })
-    } catch (error) {
-      console.error('Error inviting member:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo invitar al miembro",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingAction(false)
-    }
-  }
-
-  // Manejar eliminación de miembro
-  const handleRemoveMember = async (userId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este miembro?')) return
-    
-    try {
-      setIsLoadingAction(true)
-      clearError()
-      await removeMember(userId)
-      toast({
-        title: "Éxito",
-        description: "Miembro eliminado correctamente"
-      })
-    } catch (error) {
-      console.error('Error removing member:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar al miembro",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingAction(false)
-    }
-  }
-
-  // Manejar cierre de sesión
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-      router.push('/auth/signin')
-    } catch (error) {
-      console.error('Error signing out:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
-        variant: "destructive"
-      })
-    }
-  }
-
-  // Manejar eliminación de cuenta
-  const handleDeleteAccount = async () => {
-    if (!confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) return
-    
-    try {
-      setIsLoadingAction(true)
-      await deleteAccount()
-      router.push('/')
-    } catch (error) {
-      console.error('Error deleting account:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar la cuenta",
-        variant: "destructive"
-      })
-      setIsLoadingAction(false)
+      setIsLoadingProfile(false)
     }
   }
 
@@ -275,7 +145,7 @@ export default function AjustesPage() {
     if (!confirm('¿Estás seguro de que quieres eliminar tu foto de perfil?')) return
 
     try {
-      setIsLoadingAction(true)
+      setIsLoadingProfile(true)
       
       // Eliminar el archivo del storage si existe
       if (profile.avatar_url) {
@@ -300,7 +170,144 @@ export default function AjustesPage() {
         variant: "destructive"
       })
     } finally {
-      setIsLoadingAction(false)
+      setIsLoadingProfile(false)
+    }
+  }
+
+  // Manejar guardado de perfil
+  const handleSaveProfile = async () => {
+    try {
+      setIsLoadingProfile(true)
+      clearError()
+      await updateProfile({ 
+        name: nombre,
+        phone: telefono,
+        location: ubicacion,
+        bio: biografia
+      })
+      toast({
+        title: "Éxito",
+        description: "Perfil actualizado correctamente"
+      })
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el perfil",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingProfile(false)
+    }
+  }
+
+  // Manejar actualización de contexto
+  const handleUpdateContext = async () => {
+    try {
+      setIsLoadingContext(true)
+      clearError()
+      await updateContext({ 
+        name: contextName, 
+        description: contextDescription 
+      })
+      toast({
+        title: "Éxito",
+        description: "Contexto actualizado correctamente"
+      })
+    } catch (error) {
+      console.error('Error updating context:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el contexto",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingContext(false)
+    }
+  }
+
+  // Manejar invitación de miembro
+  const handleInviteMember = async () => {
+    if (!newMemberEmail.trim()) return
+    
+    try {
+      setIsLoadingMembers(true)
+      clearError()
+      await inviteMember(newMemberEmail)
+      setNewMemberEmail('')
+      toast({
+        title: "Éxito",
+        description: "Miembro invitado correctamente"
+      })
+    } catch (error) {
+      console.error('Error inviting member:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo invitar al miembro",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingMembers(false)
+    }
+  }
+
+  // Manejar eliminación de miembro
+  const handleRemoveMember = async (userId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este miembro?')) return
+    
+    try {
+      setIsLoadingMembers(true)
+      clearError()
+      await removeMember(userId)
+      toast({
+        title: "Éxito",
+        description: "Miembro eliminado correctamente"
+      })
+    } catch (error) {
+      console.error('Error removing member:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar al miembro",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingMembers(false)
+    }
+  }
+
+  // Manejar cierre de sesión
+  const handleSignOut = async () => {
+    try {
+      setIsLoadingAccount(true)
+      await signOut()
+      router.push('/auth/signin')
+    } catch (error) {
+      console.error('Error signing out:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive"
+      })
+      setIsLoadingAccount(false)
+    }
+  }
+
+  // Manejar eliminación de cuenta
+  const handleDeleteAccount = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) return
+    
+    try {
+      setIsLoadingAccount(true)
+      await deleteAccount()
+      router.push('/')
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la cuenta",
+        variant: "destructive"
+      })
+      setIsLoadingAccount(false)
     }
   }
 
@@ -356,7 +363,7 @@ export default function AjustesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoadingAction}
+                      disabled={isLoadingProfile}
                     >
                       <Camera className="mr-2 h-4 w-4" />
                       {profile?.avatar_url ? 'Cambiar foto' : 'Subir foto'}
@@ -367,11 +374,15 @@ export default function AjustesPage() {
                         variant="outline"
                         size="sm"
                         onClick={handleRemoveAvatar}
-                        disabled={isLoadingAction}
+                        disabled={isLoadingProfile}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar
+                        {isLoadingProfile ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        {isLoadingProfile ? 'Procesando...' : 'Eliminar'}
                       </Button>
                     )}
                   </div>
@@ -466,15 +477,15 @@ export default function AjustesPage() {
 
             <Button 
               onClick={handleSaveProfile} 
-              disabled={isLoadingAction}
+              disabled={isLoadingProfile}
               className="w-full"
             >
-              {isLoadingAction ? (
+              {isLoadingProfile ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Save className="mr-2 h-4 w-4" />
               )}
-              {isLoadingAction ? 'Guardando...' : 'Guardar Cambios'}
+              {isLoadingProfile ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           </CardContent>
         </Card>
@@ -513,15 +524,15 @@ export default function AjustesPage() {
 
             <Button 
               onClick={handleUpdateContext} 
-              disabled={isLoadingAction}
+              disabled={isLoadingContext}
               className="w-full"
             >
-              {isLoadingAction ? (
+              {isLoadingContext ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Save className="mr-2 h-4 w-4" />
               )}
-              {isLoadingAction ? 'Guardando...' : 'Actualizar Contexto'}
+              {isLoadingContext ? 'Guardando...' : 'Actualizar Contexto'}
             </Button>
           </CardContent>
         </Card>
@@ -548,9 +559,9 @@ export default function AjustesPage() {
               />
               <Button 
                 onClick={handleInviteMember}
-                disabled={isLoadingAction || !newMemberEmail.trim()}
+                disabled={isLoadingMembers || !newMemberEmail.trim()}
               >
-                {isLoadingAction ? (
+                {isLoadingMembers ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Plus className="h-4 w-4" />
@@ -585,9 +596,13 @@ export default function AjustesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveMember(member.user_id)}
-                        disabled={isLoadingAction}
+                        disabled={isLoadingMembers}
                       >
-                        <X className="h-4 w-4" />
+                        {isLoadingMembers ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
                       </Button>
                     )}
                   </div>
@@ -739,10 +754,14 @@ export default function AjustesPage() {
                 variant="outline" 
                 onClick={handleSignOut} 
                 className="w-full"
-                disabled={isLoadingAction}
+                disabled={isLoadingAccount}
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                Cerrar Sesión
+                {isLoadingAccount ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="mr-2 h-4 w-4" />
+                )}
+                {isLoadingAccount ? 'Cerrando sesión...' : 'Cerrar Sesión'}
               </Button>
             </div>
 
@@ -756,15 +775,15 @@ export default function AjustesPage() {
               <Button 
                 variant="destructive" 
                 onClick={handleDeleteAccount}
-                disabled={isLoadingAction}
+                disabled={isLoadingAccount}
                 className="w-full"
               >
-                {isLoadingAction ? (
+                {isLoadingAccount ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Trash2 className="mr-2 h-4 w-4" />
                 )}
-                {isLoadingAction ? 'Eliminando...' : 'Eliminar Cuenta'}
+                {isLoadingAccount ? 'Eliminando...' : 'Eliminar Cuenta'}
               </Button>
             </div>
           </CardContent>
