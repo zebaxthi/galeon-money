@@ -58,7 +58,7 @@ export function FinancialContextProvider({ children }: { children: React.ReactNo
       
       // Intentar obtener desde localStorage primero
       const cachedContext = getContextFromStorage()
-      if (cachedContext && cachedContext.user_id === user.id) {
+      if (cachedContext) {
         return cachedContext
       }
       

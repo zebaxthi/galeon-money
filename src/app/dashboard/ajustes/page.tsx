@@ -100,11 +100,17 @@ export default function AjustesPage() {
               {/* Tab Contents */}
               <TabsContent value="profile" className="mt-0">
                 <div className="max-w-4xl">
-                  <ProfileSettings 
-                    profile={profile} 
-                    updateProfile={updateProfile} 
-                    clearError={clearError} 
-                  />
+                  {profile ? (
+                    <ProfileSettings 
+                      profile={profile} 
+                      updateProfile={updateProfile} 
+                      clearError={clearError} 
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

@@ -203,7 +203,7 @@ export function Sidebar({ className }: SidebarProps) {
               isCollapsed ? "p-2 justify-center" : "p-3 justify-start"
             )}
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            title={isCollapsed ? (profile?.full_name || user?.email || 'Usuario') : undefined}
+            title={isCollapsed ? (profile?.name || user?.email || 'Usuario') : undefined}
           >
             <div className={cn(
               "flex items-center flex-1 min-w-0",
@@ -220,7 +220,7 @@ export function Sidebar({ className }: SidebarProps) {
               {!isCollapsed && (
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {profile?.full_name || user?.email || 'Usuario'}
+                    {profile?.name || user?.email || 'Usuario'}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
                     {user?.email}

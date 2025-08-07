@@ -1,6 +1,13 @@
 import { supabase } from '@/lib/supabase'
 import type { FinancialContext, ContextMember, UpdateFinancialContextData, InviteMemberData } from '@/lib/types'
 
+// Interfaz temporal para manejar la respuesta de Supabase
+interface SupabaseContextResponse {
+  context_id: string
+  role: 'owner' | 'member'
+  financial_contexts: FinancialContext | FinancialContext[]
+}
+
 export class FinancialContextService {
   static async getCurrentContext(userId?: string): Promise<FinancialContext | null> {
     let currentUserId = userId
@@ -31,10 +38,14 @@ export class FinancialContextService {
         .eq('context_id', profile.preferences.active_context_id)
         .single()
 
-      if (!contextError && contextData) {
+      if (!contextError && contextData && contextData.financial_contexts) {
+        const typedData = contextData as SupabaseContextResponse
+        const context = Array.isArray(typedData.financial_contexts) 
+          ? typedData.financial_contexts[0] 
+          : typedData.financial_contexts
         return {
-          ...contextData.financial_contexts,
-          user_role: contextData.role
+          ...context,
+          user_role: typedData.role
         } as FinancialContext
       }
     }
@@ -58,11 +69,15 @@ export class FinancialContextService {
     }
 
     // Establecer este como el contexto activo
-    if (data) {
+    if (data && data.financial_contexts) {
       await this.setActiveContext(data.context_id)
+      const typedData = data as SupabaseContextResponse
+      const context = Array.isArray(typedData.financial_contexts) 
+        ? typedData.financial_contexts[0] 
+        : typedData.financial_contexts
       return {
-        ...data.financial_contexts,
-        user_role: data.role
+        ...context,
+        user_role: typedData.role
       } as FinancialContext
     }
 
@@ -124,12 +139,13 @@ export class FinancialContextService {
 
   static async inviteMember(inviteData: InviteMemberData) {
     // First, check if user exists
-    const { data: profiles, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id')
       .eq('email', inviteData.email)
+      .single()
 
-    if (profileError || !profiles) {
+    if (profileError || !profile) {
       throw new Error('Usuario no encontrado. El usuario debe registrarse primero.')
     }
 
@@ -138,7 +154,7 @@ export class FinancialContextService {
       .from('context_members')
       .select('id')
       .eq('context_id', inviteData.context_id)
-      .eq('user_id', profiles.id)
+      .eq('user_id', profile.id)
       .maybeSingle()
 
     if (existingMember) {
@@ -150,7 +166,7 @@ export class FinancialContextService {
       .from('context_members')
       .insert({
         context_id: inviteData.context_id,
-        user_id: profiles.id,
+        user_id: profile.id,
         role: 'member'
       })
       .select(`
@@ -240,10 +256,15 @@ export class FinancialContextService {
 
     if (error) throw error
     
-    return data.map(item => ({
-      ...item.financial_contexts,
-      user_role: item.role
-    })) as FinancialContext[]
+    return data.map(item => {
+      const context = Array.isArray(item.financial_contexts) 
+        ? item.financial_contexts[0] 
+        : item.financial_contexts
+      return {
+        ...context,
+        user_role: item.role
+      }
+    }) as FinancialContext[]
   }
 
   static async setActiveContext(contextId: string) {
