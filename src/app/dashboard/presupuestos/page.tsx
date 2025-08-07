@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useBudgets, useBudgetProgress } from '@/hooks/useBudgets'
 import { useCategories } from '@/hooks/useCategories'
 import { useFinancialContext } from '@/hooks/useFinancialContext'
@@ -25,6 +25,7 @@ import {
   Search,
   Filter
 } from 'lucide-react'
+import { DatePicker } from "@/components/ui/date-picker"
 
 export default function PresupuestosPage() {
   const [nombrePresupuesto, setNombrePresupuesto] = useState('')
@@ -97,7 +98,13 @@ export default function PresupuestosPage() {
     return end.toISOString().split('T')[0]
   }
 
-  // Actualizar fecha de fin cuando cambia el período o fecha de inicio
+  // Inicializar fecha fin cuando se carga el componente
+  useEffect(() => {
+    if (fechaInicio && !fechaFin) {
+      setFechaFin(calculateEndDate(fechaInicio, periodoPresupuesto))
+    }
+  }, [fechaInicio, periodoPresupuesto, fechaFin]) // Agregar dependencias
+
   const handlePeriodChange = (period: string) => {
     setPeriodoPresupuesto(period)
     if (fechaInicio) {
@@ -356,7 +363,12 @@ export default function PresupuestosPage() {
                 <Label htmlFor="periodo">Período</Label>
                 <Select value={periodoPresupuesto} onValueChange={handlePeriodChange}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {periodoPresupuesto === 'weekly' && 'Semanal'}
+                      {periodoPresupuesto === 'monthly' && 'Mensual'}
+                      {periodoPresupuesto === 'quarterly' && 'Trimestral'}
+                      {periodoPresupuesto === 'yearly' && 'Anual'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="weekly">Semanal</SelectItem>
@@ -368,34 +380,24 @@ export default function PresupuestosPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                {/* Fecha Inicio */}
                 <div className="space-y-2">
                   <Label htmlFor="fechaInicio">Fecha Inicio</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fechaInicio"
-                      type="date"
-                      className="pl-10"
-                      value={fechaInicio}
-                      onChange={(e) => handleStartDateChange(e.target.value)}
-                      required
-                    />
-                  </div>
+                  <DatePicker
+                    value={fechaInicio}
+                    onChange={handleStartDateChange}
+                    placeholder="Seleccionar fecha de inicio"
+                  />
                 </div>
 
+                {/* Fecha Fin */}
                 <div className="space-y-2">
                   <Label htmlFor="fechaFin">Fecha Fin</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fechaFin"
-                      type="date"
-                      className="pl-10"
-                      value={fechaFin}
-                      onChange={(e) => setFechaFin(e.target.value)}
-                      required
-                    />
-                  </div>
+                  <DatePicker
+                    value={fechaFin}
+                    onChange={setFechaFin}
+                    placeholder="Seleccionar fecha de fin"
+                  />
                 </div>
               </div>
 

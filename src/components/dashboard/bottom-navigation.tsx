@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet"
 import { ImprovedSidebar } from "./improved-sidebar"
 
 const mainNavItems = [
@@ -43,23 +43,23 @@ export function BottomNavigation() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t lg:hidden">
-      <nav className="flex items-center justify-around py-2 px-1">
+      <nav className="grid grid-cols-5 gap-0">
         {mainNavItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
           
           return (
-            <Link key={item.href} href={item.href} className="flex-1 min-w-0">
+            <Link key={item.href} href={item.href} className="w-full">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex flex-col h-auto py-2 px-1 w-full min-w-0",
-                  isActive && "text-violet-600"
+                  "flex flex-col h-auto py-3 px-2 w-full rounded-none",
+                  isActive && "text-violet-600 bg-violet-50 dark:bg-violet-950"
                 )}
               >
-                <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 mb-1 flex-shrink-0", isActive && "text-violet-600")} />
-                <span className="text-xs font-medium truncate">{item.title}</span>
+                <Icon className={cn("h-5 w-5 mb-1 flex-shrink-0", isActive && "text-violet-600")} />
+                <span className="text-xs font-medium truncate leading-tight">{item.title}</span>
               </Button>
             </Link>
           )
@@ -71,13 +71,16 @@ export function BottomNavigation() {
             <Button
               variant="ghost"
               size="sm"
-              className="flex flex-col h-auto py-2 px-1 flex-1 min-w-0"
+              className="flex flex-col h-auto py-3 px-2 w-full rounded-none"
             >
-              <Menu className="h-4 w-4 sm:h-5 sm:w-5 mb-1 flex-shrink-0" />
-              <span className="text-xs font-medium truncate">Más</span>
+              <Menu className="h-5 w-5 mb-1 flex-shrink-0" />
+              <span className="text-xs font-medium truncate leading-tight">Más</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-full max-w-xs sm:max-w-sm">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Menú de navegación</SheetTitle>
+            </SheetHeader>
             <ImprovedSidebar />
           </SheetContent>
         </Sheet>

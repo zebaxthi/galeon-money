@@ -25,6 +25,7 @@ import {
   Trash2,
   Loader2
 } from "lucide-react"
+import { DatePicker } from "@/components/ui/date-picker"
 
 interface Movement {
   id: string
@@ -249,7 +250,7 @@ export default function MovimientosPage() {
             value={selectedYear.toString()} 
             onValueChange={(value) => setSelectedYear(parseInt(value))}
           >
-            <SelectTrigger className="w-16 sm:w-20">
+            <SelectTrigger className="w-20 sm:w-24">
               <SelectValue placeholder={selectedYear.toString()} />
             </SelectTrigger>
             <SelectContent>
@@ -342,17 +343,11 @@ export default function MovimientosPage() {
               {/* Fecha */}
               <div className="space-y-2">
                 <Label htmlFor="fecha">Fecha</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <Input
-                    id="fecha"
-                    type="date"
-                    className="pl-10"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                    required
-                  />
-                </div>
+                <DatePicker
+                  value={fecha}
+                  onChange={setFecha}
+                  placeholder="Seleccionar fecha"
+                />
               </div>
 
               {/* Descripción */}

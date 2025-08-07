@@ -105,7 +105,7 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
       {/* Header */}
       <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div className={cn("flex items-center space-x-3", isCollapsed && "justify-center")}>
+          <div className={cn("flex items-center space-x-3", isCollapsed && "justify-center w-full")}>
             <div className="p-2 bg-violet-600 rounded-lg flex-shrink-0">
               <Wallet className="h-6 w-6 text-white" />
             </div>
@@ -116,20 +116,32 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
               </div>
             )}
           </div>
-          {/* Solo mostrar botón de colapsar en desktop */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="h-8 w-8 p-0 hidden lg:flex flex-shrink-0"
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
+          {/* Botón de colapsar siempre visible en desktop */}
+          {!isCollapsed && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="h-8 w-8 p-0 hidden lg:flex flex-shrink-0"
+            >
               <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
+            </Button>
+          )}
         </div>
+        
+        {/* Botón de expandir cuando está colapsado */}
+        {isCollapsed && (
+          <div className="flex justify-center mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="h-8 w-8 p-0 hidden lg:flex"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Navigation - Scrollable */}
