@@ -33,7 +33,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Desktop Layout */}
       <div className="hidden lg:flex min-h-screen">
         {/* Desktop Sidebar - Fixed */}
@@ -42,7 +42,7 @@ export default function DashboardLayout({
         </div>
         
         {/* Main Content - With left margin for sidebar */}
-        <div className="flex-1 ml-80">
+        <div className="flex-1 ml-80 min-w-0">
           <main className="p-6">
             <div className="max-w-7xl mx-auto">
               {children}
@@ -54,7 +54,7 @@ export default function DashboardLayout({
       {/* Mobile Layout */}
       <div className="lg:hidden min-h-screen">
         {/* Main Content - With bottom padding for navigation */}
-        <main className="pb-20 p-4 min-h-screen">
+        <main className="pb-20 p-4 min-h-screen overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

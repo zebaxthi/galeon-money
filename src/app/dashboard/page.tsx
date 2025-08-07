@@ -65,23 +65,23 @@ export default function DashboardPage() {
   const isCurrentMonth = selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+    <div className="space-y-6 max-w-full overflow-hidden">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">Dashboard</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Resumen de tu situación financiera
           </p>
         </div>
         
         {/* Selector de Mes y Año */}
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <Select 
             value={selectedMonth.toString()} 
             onValueChange={(value) => setSelectedMonth(parseInt(value))}
           >
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24 sm:w-32">
               <SelectValue placeholder={monthNames[selectedMonth]} />
             </SelectTrigger>
             <SelectContent>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
             value={selectedYear.toString()} 
             onValueChange={(value) => setSelectedYear(parseInt(value))}
           >
-            <SelectTrigger className="w-20">
+            <SelectTrigger className="w-16 sm:w-20">
               <SelectValue placeholder={selectedYear.toString()} />
             </SelectTrigger>
             <SelectContent>
@@ -112,28 +112,28 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium truncate">
               {isCurrentMonth ? 'Saldo Total' : 'Saldo del Mes'}
             </CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+            <Wallet className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
             {statsLoading ? (
               <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                 <span className="text-sm">Cargando...</span>
               </div>
             ) : (
               <>
-                <div className={`text-2xl font-bold ${
+                <div className={`text-xl sm:text-2xl font-bold truncate ${
                   (stats?.balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {formatAmount(stats?.balance ?? 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {monthNames[selectedMonth]} {selectedYear}
                 </p>
               </>
@@ -143,21 +143,21 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium truncate">Ingresos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
             {statsLoading ? (
               <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                 <span className="text-sm">Cargando...</span>
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-xl sm:text-2xl font-bold text-green-600 truncate">
                   {formatAmount(stats?.totalIncome ?? 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {monthNames[selectedMonth]} {selectedYear}
                 </p>
               </>
@@ -167,21 +167,21 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gastos</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium truncate">Gastos</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
             {statsLoading ? (
               <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                 <span className="text-sm">Cargando...</span>
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-xl sm:text-2xl font-bold text-red-600 truncate">
                   {formatAmount(stats?.totalExpenses ?? 0)}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {monthNames[selectedMonth]} {selectedYear}
                 </p>
               </>
@@ -191,31 +191,22 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Progreso Presupuesto</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium truncate">Progreso Presupuesto</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
             {budgetLoading ? (
               <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                 <span className="text-sm">Cargando...</span>
               </div>
             ) : (
               <>
-                <div className="text-2xl font-bold">
+                <div className="text-xl sm:text-2xl font-bold truncate">
                   {averageBudgetProgress.toFixed(1)}%
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div 
-                    className={`h-2 rounded-full ${
-                      averageBudgetProgress >= 100 ? 'bg-red-500' :
-                      averageBudgetProgress >= 80 ? 'bg-yellow-500' : 'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(averageBudgetProgress, 100)}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {budgetProgress.length} presupuesto{budgetProgress.length !== 1 ? 's' : ''} activo{budgetProgress.length !== 1 ? 's' : ''}
+                <p className="text-xs text-muted-foreground truncate">
+                  Promedio general
                 </p>
               </>
             )}
