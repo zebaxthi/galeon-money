@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useMovements, useMovementStats } from "@/hooks/useMovements"
 import { useBudgetProgress } from "@/hooks/useBudgets"
 import { useCategories } from "@/hooks/useCategories"
@@ -13,15 +15,32 @@ import {
   Plus,
   Target,
   BarChart3,
-  Loader2
+  Loader2,
+  Calendar
 } from "lucide-react"
 import Link from "next/link"
 
 export default function DashboardPage() {
+  const currentDate = new Date()
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
+
   const { movements, loading: movementsLoading } = useMovements(undefined, 5)
-  const { stats, loading: statsLoading } = useMovementStats()
+  const { stats, loading: statsLoading } = useMovementStats(undefined, selectedYear, selectedMonth)
   const { budgetProgress, loading: budgetLoading } = useBudgetProgress()
   const { categories } = useCategories()
+
+  // Generar opciones de años (últimos 3 años + año actual + próximo año)
+  const yearOptions = []
+  for (let i = currentDate.getFullYear() - 3; i <= currentDate.getFullYear() + 1; i++) {
+    yearOptions.push(i)
+  }
+
+  // Nombres de meses
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
 
   // Calcular progreso promedio de presupuestos
   const averageBudgetProgress = budgetProgress.length > 0 
@@ -43,20 +62,62 @@ export default function DashboardPage() {
     })
   }
 
+  const isCurrentMonth = selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Resumen de tu situación financiera actual
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Resumen de tu situación financiera
+          </p>
+        </div>
+        
+        {/* Selector de Mes y Año */}
+        <div className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select 
+            value={selectedMonth.toString()} 
+            onValueChange={(value) => setSelectedMonth(parseInt(value))}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder={monthNames[selectedMonth]} />
+            </SelectTrigger>
+            <SelectContent>
+              {monthNames.map((month, index) => (
+                <SelectItem key={index} value={index.toString()}>
+                  {month}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select 
+            value={selectedYear.toString()} 
+            onValueChange={(value) => setSelectedYear(parseInt(value))}
+          >
+            <SelectTrigger className="w-20">
+              <SelectValue placeholder={selectedYear.toString()} />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isCurrentMonth ? 'Saldo Total' : 'Saldo del Mes'}
+            </CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -73,7 +134,7 @@ export default function DashboardPage() {
                   {formatAmount(stats?.balance ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Balance actual
+                  {monthNames[selectedMonth]} {selectedYear}
                 </p>
               </>
             )}
@@ -82,7 +143,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos del Mes</CardTitle>
+            <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -97,7 +158,7 @@ export default function DashboardPage() {
                   {formatAmount(stats?.totalIncome ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Total de ingresos
+                  {monthNames[selectedMonth]} {selectedYear}
                 </p>
               </>
             )}
@@ -106,7 +167,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gastos del Mes</CardTitle>
+            <CardTitle className="text-sm font-medium">Gastos</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -121,7 +182,7 @@ export default function DashboardPage() {
                   {formatAmount(stats?.totalExpenses ?? 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Total de gastos
+                  {monthNames[selectedMonth]} {selectedYear}
                 </p>
               </>
             )}

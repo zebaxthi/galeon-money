@@ -152,11 +152,14 @@ export class MovementService {
     if (error) throw error
   }
 
-  static async getMovementStats(userId: string, contextId?: string) {
-    // Get current month movements
+  static async getMovementStats(userId: string, contextId?: string, year?: number, month?: number) {
+    // Si no se especifica año/mes, usar el mes actual
     const currentDate = new Date()
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+    const targetYear = year ?? currentDate.getFullYear()
+    const targetMonth = month ?? currentDate.getMonth()
+    
+    const firstDayOfMonth = new Date(targetYear, targetMonth, 1)
+    const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0)
 
     const movements = await this.getMovementsByDateRange(
       userId,

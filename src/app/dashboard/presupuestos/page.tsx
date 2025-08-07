@@ -441,7 +441,7 @@ export default function PresupuestosPage() {
                   <Filter className="h-4 w-4 text-muted-foreground" />
                   <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
                     <SelectTrigger className="w-40">
-                      <SelectValue />
+                      <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>

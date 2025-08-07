@@ -26,6 +26,11 @@ import {
 } from "lucide-react"
 
 export default function MovimientosPage() {
+  // Estados para el selector de fecha
+  const currentDate = new Date()
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
+
   const [tipo, setTipo] = useState<'income' | 'expense'>('expense')
   const [monto, setMonto] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -47,11 +52,24 @@ export default function MovimientosPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   const { toast } = useToast()
-  const { movements, loading: movementsLoading, createMovement, updateMovement, deleteMovement } = useMovements()
+  // Actualizar el hook para usar filtrado por fecha
+  const { movements, loading: movementsLoading, createMovement, updateMovement, deleteMovement } = useMovements(undefined, undefined, selectedYear, selectedMonth)
   const { categories, loading: categoriesLoading, getCategoriesByType } = useCategories()
 
   const availableCategories = getCategoriesByType(tipo)
   const editAvailableCategories = getCategoriesByType(editTipo)
+
+  // Generar opciones de años (últimos 3 años + año actual + próximo año)
+  const yearOptions = []
+  for (let i = currentDate.getFullYear() - 3; i <= currentDate.getFullYear() + 1; i++) {
+    yearOptions.push(i)
+  }
+
+  // Nombres de meses
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
 
   // Filtrar movimientos
   const filteredMovements = movements.filter(movement => {
@@ -61,6 +79,8 @@ export default function MovimientosPage() {
     const matchesCategory = filterCategory === 'all' || movement.category_id === filterCategory
     return matchesSearch && matchesType && matchesCategory
   })
+
+  const isCurrentMonth = selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,7 +156,6 @@ export default function MovimientosPage() {
     setIsEditSubmitting(true)
     
     try {
-      // CORREGIR: Pasar objeto con id y updates
       await updateMovement({
         id: editingMovement.id,
         updates: {
@@ -200,11 +219,49 @@ export default function MovimientosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Movimientos</h1>
-        <p className="text-muted-foreground">
-          Registra tus ingresos y egresos
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Movimientos</h1>
+          <p className="text-muted-foreground">
+            {isCurrentMonth ? 'Gestiona tus movimientos del mes actual' : `Movimientos de ${monthNames[selectedMonth]} ${selectedYear}`}
+          </p>
+        </div>
+        
+        {/* Selector de Mes y Año */}
+        <div className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select 
+            value={selectedMonth.toString()} 
+            onValueChange={(value) => setSelectedMonth(parseInt(value))}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder={monthNames[selectedMonth]} />
+            </SelectTrigger>
+            <SelectContent>
+              {monthNames.map((month, index) => (
+                <SelectItem key={index} value={index.toString()}>
+                  {month}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select 
+            value={selectedYear.toString()} 
+            onValueChange={(value) => setSelectedYear(parseInt(value))}
+          >
+            <SelectTrigger className="w-20">
+              <SelectValue placeholder={selectedYear.toString()} />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -599,4 +656,3 @@ export default function MovimientosPage() {
       </Dialog>
     </div>
   )
-}
