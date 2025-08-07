@@ -86,7 +86,8 @@ export class MovementService {
         ...movementData,
         user_id: userId,
         created_by: userId,
-        movement_date: movementData.movement_date || new Date().toISOString().split('T')[0]
+        movement_date: movementData.movement_date || new Date().toISOString().split('T')[0],
+        context_id: movementData.context_id
       })
       .select(`
         *,
@@ -104,7 +105,7 @@ export class MovementService {
         )
       `)
       .single()
-
+  
     if (error) throw error
     return {
       ...data,
@@ -134,7 +135,7 @@ export class MovementService {
         )
       `)
       .single()
-
+  
     if (error) throw error
     return {
       ...data,
@@ -152,11 +153,14 @@ export class MovementService {
     if (error) throw error
   }
 
-  static async getMovementStats(userId: string, contextId?: string) {
-    // Get current month movements
+  static async getMovementStats(userId: string, contextId?: string, year?: number, month?: number) {
+    // Si no se especifica año/mes, usar el mes actual
     const currentDate = new Date()
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+    const targetYear = year ?? currentDate.getFullYear()
+    const targetMonth = month ?? currentDate.getMonth()
+    
+    const firstDayOfMonth = new Date(targetYear, targetMonth, 1)
+    const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0)
 
     const movements = await this.getMovementsByDateRange(
       userId,
@@ -253,12 +257,12 @@ export class MovementService {
       })
     }
 
-    // 3. Category Stats
+    // 3. Category Stats - INCLUIR MOVIMIENTOS SIN CATEGORÍA
     const expensesByCategory = movements
-      .filter(m => m.type === 'expense' && m.category)
+      .filter(m => m.type === 'expense') // Incluir TODOS los egresos, con y sin categoría
       .reduce((acc, movement) => {
-        const categoryName = movement.category?.name || 'Uncategorized'
-        const categoryColor = movement.category?.color || '#8b5cf6'
+        const categoryName = movement.category?.name || 'Sin categoría'
+        const categoryColor = movement.category?.color || '#6b7280'
         const amount = Number(movement.amount)
 
         if (acc[categoryName]) {

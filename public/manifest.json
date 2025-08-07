@@ -1,15 +1,45 @@
 {
-  "name": "Galeon Money",
-  "short_name": "Galeon",
-  "description": "Gestiona tus finanzas de manera inteligente",
+  "name": "Galeon Money - Finanzas Personales",
+  "short_name": "Galeon Money",
+  "description": "Gestiona tus finanzas de manera inteligente con Galeon Money",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#8b5cf6",
   "orientation": "portrait-primary",
-  "categories": ["finance", "productivity"],
+  "categories": ["finance", "productivity", "business"],
   "lang": "es",
   "scope": "/",
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone"],
+  "shortcuts": [
+    {
+      "name": "Nuevo Movimiento",
+      "short_name": "Movimiento",
+      "description": "Registrar un nuevo ingreso o egreso",
+      "url": "/dashboard/movimientos",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Estadísticas",
+      "short_name": "Stats",
+      "description": "Ver estadísticas financieras",
+      "url": "/dashboard/estadisticas",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

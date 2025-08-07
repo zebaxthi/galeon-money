@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
@@ -22,6 +22,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const queryClient = useQueryClient()
+
+  // Memoizar funciones para evitar re-renders
+  const handleSignOut = useCallback(() => {
+    queryClient.clear()
+  }, [queryClient])
+
+  const handleSignIn = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['current-context'] })
+    queryClient.invalidateQueries({ queryKey: ['profile'] })
+  }, [queryClient])
 
   useEffect(() => {
     // Obtener sesión inicial UNA SOLA VEZ
@@ -48,14 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(newSession?.user ?? null)
         
         if (event === 'SIGNED_OUT') {
-          // Limpiar cache cuando el usuario cierre sesión
-          queryClient.clear()
+          handleSignOut()
         }
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          // Invalidar queries relacionadas con el usuario cuando se autentique
-          queryClient.invalidateQueries({ queryKey: ['current-context'] })
-          queryClient.invalidateQueries({ queryKey: ['profile'] })
+          handleSignIn()
         }
       }
     )
@@ -63,10 +70,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [queryClient])
+  }, [handleSignOut, handleSignIn])
+
+  // Memoizar el valor del contexto para evitar re-renders innecesarios
+  const contextValue = useMemo(() => ({
+    user,
+    session,
+    loading
+  }), [user, session, loading])
 
   return (
-    <AuthContext.Provider value={{ user, session, loading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )

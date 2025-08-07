@@ -119,4 +119,44 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Scrollbar personalizado */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-track-transparent {
+    scrollbar-color: transparent transparent;
+  }
+  
+  .scrollbar-thumb-border {
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  
+  .hover\:scrollbar-thumb-border\/80:hover {
+    scrollbar-color: hsl(var(--border) / 0.8) transparent;
+  }
+  
+  /* Webkit scrollbar para navegadores basados en Chromium */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border) / 0.8);
+  }
+  
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }

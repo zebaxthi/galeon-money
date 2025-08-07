@@ -44,7 +44,7 @@ export function useFinancialContext() {
 
   // Mutación para invitar miembro
   const inviteMemberMutation = useMutation({
-    mutationFn: ({ contextId, data }: { contextId: string; data: InviteMemberData }) =>
+    mutationFn: ({ data }: { data: InviteMemberData }) =>
       FinancialContextService.inviteMember(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['context-members'] })

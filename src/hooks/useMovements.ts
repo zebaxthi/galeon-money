@@ -4,7 +4,7 @@ import { MovementService } from '@/lib/services/movements'
 import { useQueryInvalidation } from './useQueryInvalidation'
 import type { CreateMovementData } from '@/lib/types'
 
-export function useMovements(contextId?: string, limit?: number) {
+export function useMovements(contextId?: string, limit?: number, year?: number, month?: number) {
   const { user } = useAuth()
   const { invalidateMovementRelatedQueries } = useQueryInvalidation()
 
@@ -13,8 +13,26 @@ export function useMovements(contextId?: string, limit?: number) {
     isLoading: loading,
     error
   } = useQuery({
-    queryKey: ['movements', user?.id, contextId, limit],
-    queryFn: () => user ? MovementService.getMovements(user.id, contextId, limit) : [],
+    queryKey: ['movements', user?.id, contextId, limit, year, month],
+    queryFn: async () => {
+      if (!user) return []
+      
+      // Si se especifica año y mes, usar filtrado por fecha
+      if (year !== undefined && month !== undefined) {
+        const firstDayOfMonth = new Date(year, month, 1)
+        const lastDayOfMonth = new Date(year, month + 1, 0)
+        
+        return MovementService.getMovementsByDateRange(
+          user.id,
+          firstDayOfMonth.toISOString().split('T')[0],
+          lastDayOfMonth.toISOString().split('T')[0],
+          contextId
+        )
+      }
+      
+      // Si no, usar el método original
+      return MovementService.getMovements(user.id, contextId, limit)
+    },
     enabled: !!user,
     staleTime: 2 * 60 * 1000, // 2 minutos
   })
@@ -49,7 +67,7 @@ export function useMovements(contextId?: string, limit?: number) {
   }
 }
 
-export function useMovementStats(contextId?: string) {
+export function useMovementStats(contextId?: string, year?: number, month?: number) {
   const { user } = useAuth()
 
   const {
@@ -62,10 +80,11 @@ export function useMovementStats(contextId?: string) {
     isLoading: loading,
     error
   } = useQuery({
-    queryKey: ['movement-stats', user?.id, contextId],
-    queryFn: () => user ? MovementService.getMovementStats(user.id, contextId) : null,
+    queryKey: ['movement-stats', user?.id, contextId, year, month],
+    queryFn: () => user ? MovementService.getMovementStats(user.id, contextId, year, month) : null,
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutos
+    staleTime: 5 * 60 * 1000, // 5 minutos de caché
+    gcTime: 10 * 60 * 1000, // 10 minutos en memoria
   })
 
   return { 

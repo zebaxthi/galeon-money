@@ -1,59 +1,39 @@
-"use client"
-
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/providers/auth-provider"
-import { DashboardNav } from "@/components/dashboard/dashboard-nav"
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
-import type { UserData } from "@/lib/types"
+import { Sidebar } from '@/components/dashboard/sidebar'
+import { BottomNavigation } from '@/components/dashboard/bottom-navigation'
+import { AuthGuard } from '@/components/auth/auth-guard'
+import { FinancialContextProvider } from '@/providers/financial-context-provider'
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/auth/signin")
-    }
-  }, [user, loading, router])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-violet-600"></div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return null // Redirigiendo...
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader user={user as unknown as UserData} />
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block w-64 border-r bg-muted/10">
-          <DashboardNav />
+    <AuthGuard>
+      <FinancialContextProvider>
+        <div className="flex h-screen bg-background">
+          {/* Desktop Sidebar */}
+          <div className="hidden md:flex md:flex-col">
+            <Sidebar />
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <main className="flex-1 overflow-y-auto overscroll-contain">
+              <div className="min-h-full p-4 pb-20 md:pb-4">
+                <div className="max-w-full">
+                  {children}
+                </div>
+              </div>
+            </main>
+          </div>
+
+          {/* Mobile Bottom Navigation */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+            <BottomNavigation />
+          </div>
         </div>
-        
-        {/* Main Content */}
-        <div className="flex-1 lg:pl-0">
-          <main className="container mx-auto px-4 py-6 pb-20 lg:pb-6">
-            {children}
-          </main>
-        </div>
-      </div>
-      
-      {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t bg-background">
-        <DashboardNav isMobile />
-      </div>
-    </div>
+      </FinancialContextProvider>
+    </AuthGuard>
   )
 }

@@ -25,6 +25,7 @@ export interface FinancialContext {
   owner_id: string
   created_at: string
   updated_at: string
+  user_role?: 'owner' | 'member'
 }
 
 export interface ContextMember {
@@ -85,30 +86,29 @@ export interface Budget {
 
 export interface CreateMovementData {
   amount: number
-  description: string
-  notes?: string
   type: 'income' | 'expense'
+  description?: string
   category_id?: string
-  context_id?: string
   movement_date?: string
+  context_id?: string
 }
 
 export interface CreateCategoryData {
   name: string
   type: 'income' | 'expense'
-  color: string
   icon?: string
+  color: string
   context_id?: string
 }
 
 export interface CreateBudgetData {
   name: string
   amount: number
-  category_id?: string
-  context_id?: string
+  category_id: string
   period: 'weekly' | 'monthly' | 'yearly'
   start_date: string
   end_date: string
+  context_id?: string
 }
 
 export interface UpdateFinancialContextData {

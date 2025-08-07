@@ -5,76 +5,241 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useMovements } from "@/hooks/useMovements"
 import { useCategories } from "@/hooks/useCategories"
+import { useActiveFinancialContext } from "@/providers/financial-context-provider"
+import { useToast } from "@/hooks/use-toast"
+import { 
+  getCurrentBogotaDate, 
+  dateInputToUTC, 
+  dateUTCToBogota, 
+  formatDateForDisplay
+} from "@/lib/utils"
 import { 
   Plus, 
   Minus, 
-  Calendar,
-  DollarSign,
-  FileText,
+  DollarSign, 
+  Calendar, 
+  FileText, 
+  Search, 
+  Filter,
+  Edit,
+  Trash2,
   Loader2
 } from "lucide-react"
 
+interface Movement {
+  id: string
+  amount: number
+  type: 'income' | 'expense'
+  description?: string
+  category_id?: string
+  movement_date: string
+  created_at: string
+}
+
 export default function MovimientosPage() {
+  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const currentDate = new Date()
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
+
+  // Form states
   const [tipo, setTipo] = useState<'income' | 'expense'>('expense')
   const [monto, setMonto] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(getCurrentBogotaDate())
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { toast } = useToast()
-  const { movements, loading: movementsLoading, createMovement } = useMovements(undefined, 10)
-  const { categories, loading: categoriesLoading, getCategoriesByType } = useCategories()
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
+  const [filterCategory, setFilterCategory] = useState('all')
 
-  const availableCategories = getCategoriesByType(tipo)
+  // Edit states
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingMovement, setEditingMovement] = useState<Movement | null>(null)
+  const [editTipo, setEditTipo] = useState<'income' | 'expense'>('expense')
+  const [editMonto, setEditMonto] = useState('')
+  const [editCategoryId, setEditCategoryId] = useState('')
+  const [editFecha, setEditFecha] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false)
+
+  const { 
+    movements, 
+    loading: movementsLoading, 
+    createMovement, 
+    updateMovement, 
+    deleteMovement 
+  } = useMovements(activeContext?.id, undefined, selectedYear, selectedMonth)
+  const { categories, loading: categoriesLoading } = useCategories(activeContext?.id)
+  const { toast } = useToast()
+
+  // Show loading state if context is loading
+  if (contextLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Cargando contexto financiero...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if no active context
+  if (!activeContext) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <h2 className="text-xl font-semibold mb-2">No hay contexto financiero activo</h2>
+          <p className="text-muted-foreground">
+            Selecciona un contexto financiero en la configuración para gestionar tus movimientos.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Generar opciones de años (últimos 3 años + año actual + próximo año)
+  const yearOptions = []
+  for (let i = currentDate.getFullYear() - 3; i <= currentDate.getFullYear() + 1; i++) {
+    yearOptions.push(i)
+  }
+
+  // Nombres de meses
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+
+  const isCurrentMonth = selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()
+
+  // Filter categories based on movement type
+  const availableCategories = categories.filter(cat => cat.type === tipo)
+  const editAvailableCategories = categories.filter(cat => cat.type === editTipo)
+
+  // Filter movements
+  const filteredMovements = movements.filter(movement => {
+    const matchesSearch = !searchTerm || 
+      movement.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      categories.find(c => c.id === movement.category_id)?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesType = filterType === 'all' || movement.type === filterType
+    
+    const matchesCategory = filterCategory === 'all' || 
+      (filterCategory === '' && !movement.category_id) ||
+      movement.category_id === filterCategory
+
+    return matchesSearch && matchesType && matchesCategory
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!monto || !categoryId || !fecha) {
-      toast({
-        title: "Error",
-        description: "Por favor completa todos los campos requeridos",
-        variant: "destructive"
-      })
-      return
-    }
-
     setIsSubmitting(true)
-    
+
     try {
-      await createMovement({
+      createMovement({
         amount: parseFloat(monto),
         type: tipo,
-        category_id: categoryId,
-        movement_date: fecha,
-        description: description || ''
+        description: description || undefined,
+        category_id: categoryId || undefined,
+        movement_date: dateInputToUTC(fecha), // Convertir a UTC
+        context_id: activeContext?.id
       })
 
-      // Limpiar formulario
+      // Reset form
       setMonto('')
-      setCategoryId('')
       setDescription('')
-      setFecha(new Date().toISOString().split('T')[0])
-
+      setCategoryId('')
+      setFecha(getCurrentBogotaDate())
+      
       toast({
-        title: "¡Éxito!",
-        description: "Movimiento registrado correctamente",
+        title: "Movimiento registrado",
+        description: `${tipo === 'income' ? 'Ingreso' : 'Egreso'} de $${parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2 })} registrado exitosamente.`
       })
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo registrar el movimiento. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudo registrar el movimiento. Inténtalo de nuevo.",
         variant: "destructive"
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleEditMovement = (movement: Movement) => {
+    setEditingMovement(movement)
+    setEditTipo(movement.type)
+    setEditMonto(movement.amount.toString())
+    setEditCategoryId(movement.category_id || '')
+    setEditFecha(dateUTCToBogota(movement.movement_date)) // Convertir de UTC a Bogotá
+    setEditDescription(movement.description || '')
+    setIsEditDialogOpen(true)
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingMovement) return
+
+    setIsEditSubmitting(true)
+
+    try {
+      updateMovement({
+        id: editingMovement.id,
+        updates: {
+          amount: parseFloat(editMonto),
+          type: editTipo,
+          description: editDescription || undefined,
+          category_id: editCategoryId || undefined,
+          movement_date: dateInputToUTC(editFecha), // Convertir a UTC
+          context_id: activeContext?.id
+        }
+      })
+
+      setIsEditDialogOpen(false)
+      setEditingMovement(null)
+      
+      toast({
+        title: "Movimiento actualizado",
+        description: "El movimiento ha sido actualizado exitosamente."
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo actualizar el movimiento. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsEditSubmitting(false)
+    }
+  }
+
+  const handleDeleteMovement = async (id: string, description?: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar este movimiento${description ? `: "${description}"` : ''}?`)) {
+      return
+    }
+
+    try {
+      deleteMovement(id)
+      
+      toast({
+        title: "Movimiento eliminado",
+        description: "El movimiento ha sido eliminado exitosamente."
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo eliminar el movimiento. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -83,29 +248,59 @@ export default function MovimientosPage() {
     return `${prefix}$${amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Movimientos</h1>
-        <p className="text-muted-foreground">
-          Registra tus ingresos y egresos
-        </p>
+    <div className="space-y-6 max-w-full">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">Movimientos</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            {isCurrentMonth ? 'Gestiona tus movimientos del mes actual' : `Movimientos de ${monthNames[selectedMonth]} ${selectedYear}`}
+          </p>
+        </div>
+        
+        {/* Selector de Mes y Año */}
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <Select 
+            value={selectedMonth.toString()} 
+            onValueChange={(value) => setSelectedMonth(parseInt(value))}
+          >
+            <SelectTrigger className="w-24 sm:w-32">
+              <SelectValue placeholder={monthNames[selectedMonth]} />
+            </SelectTrigger>
+            <SelectContent>
+              {monthNames.map((month, index) => (
+                <SelectItem key={index} value={index.toString()}>
+                  {month}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select 
+            value={selectedYear.toString()} 
+            onValueChange={(value) => setSelectedYear(parseInt(value))}
+          >
+            <SelectTrigger className="w-20 sm:w-24">
+              <SelectValue placeholder={selectedYear.toString()} />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         {/* Formulario de Registro */}
         <Card>
           <CardHeader>
-            <CardTitle>Registrar Movimiento</CardTitle>
-            <CardDescription>
+            <CardTitle className="truncate">Registrar Movimiento</CardTitle>
+            <CardDescription className="text-sm">
               Añade un nuevo ingreso o egreso a tu registro financiero
             </CardDescription>
           </CardHeader>
@@ -119,13 +314,13 @@ export default function MovimientosPage() {
                   setCategoryId('') // Reset category when type changes
                 }}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="income" className="text-green-600">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Ingreso
+                    <TabsTrigger value="income" className="text-green-600 text-xs sm:text-sm">
+                      <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="truncate">Ingreso</span>
                     </TabsTrigger>
-                    <TabsTrigger value="expense" className="text-red-600">
-                      <Minus className="mr-2 h-4 w-4" />
-                      Egreso
+                    <TabsTrigger value="expense" className="text-red-600 text-xs sm:text-sm">
+                      <Minus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="truncate">Egreso</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -135,7 +330,7 @@ export default function MovimientosPage() {
               <div className="space-y-2">
                 <Label htmlFor="monto">Monto</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <Input
                     id="monto"
                     type="number"
@@ -151,7 +346,7 @@ export default function MovimientosPage() {
 
               {/* Categoría */}
               <div className="space-y-2">
-                <Label htmlFor="categoria">Categoría</Label>
+                <Label htmlFor="categoria">Categoría (opcional)</Label>
                 <Select value={categoryId} onValueChange={setCategoryId} disabled={categoriesLoading}>
                   <SelectTrigger>
                     <SelectValue placeholder={
@@ -159,15 +354,16 @@ export default function MovimientosPage() {
                         ? "Cargando categorías..." 
                         : availableCategories.length === 0
                           ? `No hay categorías de ${tipo === 'income' ? 'ingresos' : 'egresos'}`
-                          : "Selecciona una categoría"
+                          : "Selecciona una categoría (opcional)"
                     } />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">Sin categoría</SelectItem>
                     {availableCategories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         <div className="flex items-center space-x-2">
                           <span>{category.icon}</span>
-                          <span>{category.name}</span>
+                          <span className="truncate">{category.name}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -178,24 +374,20 @@ export default function MovimientosPage() {
               {/* Fecha */}
               <div className="space-y-2">
                 <Label htmlFor="fecha">Fecha</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="fecha"
-                    type="date"
-                    className="pl-10"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                    required
-                  />
-                </div>
+                <Input
+                  id="fecha"
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  required
+                />
               </div>
 
               {/* Descripción */}
               <div className="space-y-2">
                 <Label htmlFor="description">Descripción (opcional)</Label>
                 <div className="relative">
-                  <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <Input
                     id="description"
                     placeholder="Descripción del movimiento..."
@@ -209,13 +401,13 @@ export default function MovimientosPage() {
               <Button type="submit" className="w-full" disabled={isSubmitting || categoriesLoading}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Registrando...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
+                    <span className="truncate">Registrando...</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Registrar Movimiento
+                    <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">Registrar Movimiento</span>
                   </>
                 )}
               </Button>
@@ -223,34 +415,84 @@ export default function MovimientosPage() {
           </CardContent>
         </Card>
 
-        {/* Lista de Movimientos Recientes */}
+        {/* Lista de Movimientos */}
         <Card>
           <CardHeader>
-            <CardTitle>Movimientos Recientes</CardTitle>
-            <CardDescription>
-              Tus últimas transacciones registradas
+            <CardTitle className="truncate">Movimientos Registrados</CardTitle>
+            <CardDescription className="text-sm">
+              Gestiona tus transacciones registradas
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Filtros y búsqueda */}
+            <div className="space-y-4 mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <Input
+                  placeholder="Buscar movimientos..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                  <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <Tabs value={filterType} onValueChange={(value) => setFilterType(value as 'all' | 'income' | 'expense')} className="flex-1">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="all" className="text-xs sm:text-sm truncate">Todos</TabsTrigger>
+                      <TabsTrigger value="income" className="text-xs sm:text-sm truncate">Ingresos</TabsTrigger>
+                      <TabsTrigger value="expense" className="text-xs sm:text-sm truncate">Egresos</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Todas las categorías" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    <SelectItem value="">Sin categoría</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <span className="truncate">{category.icon} {category.name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {movementsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin flex-shrink-0" />
                 <span className="ml-2">Cargando movimientos...</span>
               </div>
-            ) : movements.length === 0 ? (
+            ) : filteredMovements.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay movimientos registrados</p>
-                <p className="text-sm">Registra tu primer movimiento usando el formulario</p>
+                {searchTerm || filterType !== 'all' || filterCategory !== 'all' ? (
+                  <>
+                    <p>No se encontraron movimientos</p>
+                    <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                  </>
+                ) : (
+                  <>
+                    <p>No hay movimientos registrados</p>
+                    <p className="text-sm">Registra tu primer movimiento usando el formulario</p>
+                  </>
+                )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {movements.map((movement) => {
+              <div className="space-y-4 max-h-[60vh] sm:max-h-96 overflow-y-auto overscroll-contain">
+                {filteredMovements.map((movement) => {
                   const category = categories.find(c => c.id === movement.category_id)
                   return (
-                    <div key={movement.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${
+                    <div key={movement.id} className="flex items-center justify-between p-3 border rounded-lg min-w-0">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <div className={`p-2 rounded-full flex-shrink-0 ${
                           movement.type === 'income' 
                             ? 'bg-green-100 text-green-600 dark:bg-green-900/20' 
                             : 'bg-red-100 text-red-600 dark:bg-red-900/20'
@@ -261,25 +503,46 @@ export default function MovimientosPage() {
                             <Minus className="h-4 w-4" />
                           )}
                         </div>
-                        <div>
-                          <p className="font-medium">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">
                             {movement.description || 'Sin descripción'}
                           </p>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="secondary" className="text-xs">
-                              {category?.icon} {category?.name || 'Sin categoría'}
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-1 sm:space-y-0">
+                            <Badge variant="secondary" className="text-xs w-fit">
+                              <span className="truncate">{category ? `${category.icon} ${category.name}` : '🏷️ Sin categoría'}</span>
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(movement.movement_date)}
-                            </span>
+                            <div className="text-sm text-muted-foreground">
+                              {formatDateForDisplay(movement.movement_date, true)} {/* true indica que viene de UTC */}
+                            </div>
                           </div>
                         </div>
                       </div>
-                      <span className={`font-bold ${
-                        movement.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {formatAmount(movement.amount, movement.type)}
-                      </span>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <span className={`font-bold text-sm sm:text-base ${
+                          movement.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatAmount(movement.amount, movement.type)}
+                        </span>
+                        <div className="flex space-x-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditMovement(movement)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteMovement(movement.id, movement.description)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )
                 })}
@@ -288,6 +551,135 @@ export default function MovimientosPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog para editar movimiento */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Movimiento</DialogTitle>
+            <DialogDescription>
+              Modifica los detalles del movimiento
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {/* Tipo de Movimiento */}
+            <div className="space-y-2">
+              <Label>Tipo de Movimiento</Label>
+              <Tabs value={editTipo} onValueChange={(value) => {
+                setEditTipo(value as 'income' | 'expense')
+                setEditCategoryId('') // Reset category when type changes
+              }}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="income" className="text-green-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Ingreso
+                  </TabsTrigger>
+                  <TabsTrigger value="expense" className="text-red-600">
+                    <Minus className="mr-2 h-4 w-4" />
+                    Egreso
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Monto */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-monto">Monto</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="edit-monto"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="pl-10"
+                  value={editMonto}
+                  onChange={(e) => setEditMonto(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Categoría */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-categoria">Categoría (opcional)</Label>
+              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una categoría (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin categoría</SelectItem>
+                  {editAvailableCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center space-x-2">
+                        <span>{category.icon}</span>
+                        <span>{category.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Fecha */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-fecha">Fecha</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="edit-fecha"
+                  type="date"
+                  className="pl-10"
+                  value={editFecha}
+                  onChange={(e) => setEditFecha(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Descripción */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Descripción (opcional)</Label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="edit-description"
+                  placeholder="Descripción del movimiento..."
+                  className="pl-10"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                className="flex-1"
+                disabled={isEditSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={isEditSubmitting}
+              >
+                {isEditSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Actualizando...
+                  </>
+                ) : (
+                  'Actualizar'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
