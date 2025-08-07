@@ -253,12 +253,12 @@ export class MovementService {
       })
     }
 
-    // 3. Category Stats
+    // 3. Category Stats - INCLUIR MOVIMIENTOS SIN CATEGORÍA
     const expensesByCategory = movements
-      .filter(m => m.type === 'expense' && m.category)
+      .filter(m => m.type === 'expense') // Incluir TODOS los egresos, con y sin categoría
       .reduce((acc, movement) => {
-        const categoryName = movement.category?.name || 'Uncategorized'
-        const categoryColor = movement.category?.color || '#8b5cf6'
+        const categoryName = movement.category?.name || 'Sin categoría'
+        const categoryColor = movement.category?.color || '#6b7280'
         const amount = Number(movement.amount)
 
         if (acc[categoryName]) {

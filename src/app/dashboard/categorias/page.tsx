@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { useToast } from '@/hooks/use-toast'
 import { 
   Tag, 
@@ -17,7 +18,8 @@ import {
   Plus, 
   Loader2, 
   Trash2,
-  Edit
+  Search,
+  Filter
 } from 'lucide-react'
 
 export default function CategoriasPage() {
@@ -25,6 +27,8 @@ export default function CategoriasPage() {
   const [tipoCategoria, setTipoCategoria] = useState<'income' | 'expense'>('expense')
   const [iconoCategoria, setIconoCategoria] = useState('🏷️')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
 
   const { currentContext } = useFinancialContext()
   const { 
@@ -39,6 +43,16 @@ export default function CategoriasPage() {
 
   const ingresos = getCategoriesByType('income')
   const egresos = getCategoriesByType('expense')
+
+  // Filtrar categorías por búsqueda y tipo
+  const filteredCategories = categories.filter(category => {
+    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesType = filterType === 'all' || category.type === filterType
+    return matchesSearch && matchesType
+  })
+
+  const filteredIngresos = filteredCategories.filter(cat => cat.type === 'income')
+  const filteredEgresos = filteredCategories.filter(cat => cat.type === 'expense')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,11 +152,6 @@ export default function CategoriasPage() {
     }
   }
 
-  const iconosDisponibles = [
-    '🏷️', '🍔', '🚗', '🏠', '💡', '🎮', '👕', '💊', 
-    '📚', '🎬', '✈️', '🏋️', '💰', '💼', '🎯', '🛒'
-  ]
-
   return (
     <div className="space-y-6">
       <div>
@@ -198,25 +207,10 @@ export default function CategoriasPage() {
                 </Tabs>
               </div>
 
-              <div className="space-y-2">
-                <Label>Icono</Label>
-                <div className="grid grid-cols-8 gap-2">
-                  {iconosDisponibles.map((icono) => (
-                    <button
-                      key={icono}
-                      type="button"
-                      className={`w-8 h-8 rounded border-2 flex items-center justify-center text-lg ${
-                        iconoCategoria === icono 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      onClick={() => setIconoCategoria(icono)}
-                    >
-                      {icono}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <EmojiPicker
+                value={iconoCategoria}
+                onChange={setIconoCategoria}
+              />
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
@@ -245,28 +239,60 @@ export default function CategoriasPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Filtros y búsqueda */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar categorías..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Tabs value={filterType} onValueChange={(value) => setFilterType(value as 'all' | 'income' | 'expense')}>
+                    <TabsList>
+                      <TabsTrigger value="all">Todas</TabsTrigger>
+                      <TabsTrigger value="income">Ingresos</TabsTrigger>
+                      <TabsTrigger value="expense">Egresos</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </div>
+
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                   <span className="ml-2">Cargando categorías...</span>
                 </div>
-              ) : categories.length === 0 ? (
+              ) : filteredCategories.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No hay categorías registradas</p>
-                  <p className="text-sm">Crea tu primera categoría usando el formulario</p>
+                  {searchTerm || filterType !== 'all' ? (
+                    <>
+                      <p>No se encontraron categorías</p>
+                      <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>No hay categorías registradas</p>
+                      <p className="text-sm">Crea tu primera categoría usando el formulario</p>
+                    </>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-6 max-h-96 overflow-y-auto">
                   {/* Categorías de Ingresos */}
-                  {ingresos.length > 0 && (
+                  {filteredIngresos.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-green-600 mb-3 flex items-center">
                         <TrendingUp className="mr-2 h-4 w-4" />
-                        Ingresos ({ingresos.length})
+                        Ingresos ({filteredIngresos.length})
                       </h3>
                       <div className="space-y-2">
-                        {ingresos.map((categoria) => (
+                        {filteredIngresos.map((categoria) => (
                           <div key={categoria.id} className="flex items-center justify-between p-3 border rounded-lg">
                             <div className="flex items-center space-x-3">
                               <span className="text-lg">{categoria.icon}</span>
@@ -294,14 +320,14 @@ export default function CategoriasPage() {
                   )}
 
                   {/* Categorías de Egresos */}
-                  {egresos.length > 0 && (
+                  {filteredEgresos.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-red-600 mb-3 flex items-center">
                         <TrendingDown className="mr-2 h-4 w-4" />
-                        Egresos ({egresos.length})
+                        Egresos ({filteredEgresos.length})
                       </h3>
                       <div className="space-y-2">
-                        {egresos.map((categoria) => (
+                        {filteredEgresos.map((categoria) => (
                           <div key={categoria.id} className="flex items-center justify-between p-3 border rounded-lg">
                             <div className="flex items-center space-x-3">
                               <span className="text-lg">{categoria.icon}</span>

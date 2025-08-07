@@ -15,12 +15,15 @@ import { useToast } from '@/hooks/use-toast'
 import { 
   Target, 
   DollarSign, 
-  Calendar,
+  Calendar, 
+  TrendingUp, 
+  AlertTriangle, 
+  CheckCircle, 
   Loader2, 
+  Plus,
   Trash2,
-  AlertTriangle,
-  CheckCircle,
-  TrendingDown
+  Search,
+  Filter
 } from 'lucide-react'
 
 export default function PresupuestosPage() {
@@ -28,32 +31,92 @@ export default function PresupuestosPage() {
   const [montoPresupuesto, setMontoPresupuesto] = useState('')
   const [categoriaPresupuesto, setCategoriaPresupuesto] = useState('')
   const [periodoPresupuesto, setPeriodoPresupuesto] = useState('monthly')
+  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().split('T')[0])
+  const [fechaFin, setFechaFin] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'exceeded' | 'completed'>('all')
 
   const { currentContext } = useFinancialContext()
-  const { 
-    budgets, 
-    loading: budgetsLoading, 
-    createBudget, 
-    deleteBudget
-  } = useBudgets(currentContext?.id)
-  
-  const { 
-    budgetProgress, 
-    loading: progressLoading 
-  } = useBudgetProgress(currentContext?.id)
-  
-  const { getCategoriesByType } = useCategories(currentContext?.id)
+  const { budgets, loading, createBudget, deleteBudget } = useBudgets(currentContext?.id)
+  const { budgetProgress, loading: progressLoading } = useBudgetProgress(currentContext?.id)
+  const { categories, getCategoriesByType } = useCategories(currentContext?.id)
   const { toast } = useToast()
 
   const expenseCategories = getCategoriesByType('expense')
+
+  // Filtrar presupuestos
+  const filteredBudgets = budgets.filter(budget => {
+    const matchesSearch = budget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         categories.find(c => c.id === budget.category_id)?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (!matchesSearch) return false
+
+    if (filterStatus === 'all') return true
+
+    const progress = budgetProgress?.find(p => p.budget_id === budget.id)
+    if (!progress) return filterStatus === 'active'
+
+    const percentage = (progress.spent / budget.amount) * 100
+
+    switch (filterStatus) {
+      case 'active':
+        return percentage < 100
+      case 'exceeded':
+        return percentage > 100
+      case 'completed':
+        return percentage >= 90 && percentage <= 100
+      default:
+        return true
+    }
+  })
+
+  // Calcular fecha de fin automática
+  const calculateEndDate = (startDate: string, period: string) => {
+    const start = new Date(startDate)
+    let end = new Date(start)
+    
+    switch (period) {
+      case 'weekly':
+        end.setDate(start.getDate() + 6)
+        break
+      case 'monthly':
+        end.setMonth(start.getMonth() + 1)
+        end.setDate(start.getDate() - 1)
+        break
+      case 'quarterly':
+        end.setMonth(start.getMonth() + 3)
+        end.setDate(start.getDate() - 1)
+        break
+      case 'yearly':
+        end.setFullYear(start.getFullYear() + 1)
+        end.setDate(start.getDate() - 1)
+        break
+    }
+    
+    return end.toISOString().split('T')[0]
+  }
+
+  // Actualizar fecha de fin cuando cambia el período o fecha de inicio
+  const handlePeriodChange = (period: string) => {
+    setPeriodoPresupuesto(period)
+    if (fechaInicio) {
+      setFechaFin(calculateEndDate(fechaInicio, period))
+    }
+  }
+
+  const handleStartDateChange = (date: string) => {
+    setFechaInicio(date)
+    if (date) {
+      setFechaFin(calculateEndDate(date, periodoPresupuesto))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Validaciones del frontend
     const trimmedName = nombrePresupuesto.trim()
-    const amount = parseFloat(montoPresupuesto)
     
     if (!trimmedName) {
       toast({
@@ -64,10 +127,10 @@ export default function PresupuestosPage() {
       return
     }
 
-    if (trimmedName.length < 3) {
+    if (trimmedName.length < 2) {
       toast({
         title: "Error",
-        description: "El nombre debe tener al menos 3 caracteres",
+        description: "El nombre debe tener al menos 2 caracteres",
         variant: "destructive"
       })
       return
@@ -82,19 +145,10 @@ export default function PresupuestosPage() {
       return
     }
 
-    if (!montoPresupuesto || amount <= 0) {
+    if (!montoPresupuesto || parseFloat(montoPresupuesto) <= 0) {
       toast({
         title: "Error",
         description: "Por favor ingresa un monto válido mayor a 0",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (amount > 999999999) {
-      toast({
-        title: "Error",
-        description: "El monto no puede exceder 999,999,999",
         variant: "destructive"
       })
       return
@@ -109,15 +163,19 @@ export default function PresupuestosPage() {
       return
     }
 
-    // Verificar duplicados en el frontend (validación adicional)
-    const selectedCategory = expenseCategories.find(cat => cat.id === categoriaPresupuesto)
-    const existingBudgetsForCategory = budgets.filter(budget => budget.category_id === categoriaPresupuesto)
-    
-    if (existingBudgetsForCategory.length > 0) {
-      const conflictingBudget = existingBudgetsForCategory[0]
+    if (!fechaInicio || !fechaFin) {
       toast({
         title: "Error",
-        description: `Ya existe un presupuesto activo "${conflictingBudget.name}" para la categoría "${selectedCategory?.name}"`,
+        description: "Por favor selecciona las fechas del presupuesto",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (new Date(fechaFin) <= new Date(fechaInicio)) {
+      toast({
+        title: "Error",
+        description: "La fecha de fin debe ser posterior a la fecha de inicio",
         variant: "destructive"
       })
       return
@@ -126,29 +184,13 @@ export default function PresupuestosPage() {
     setIsSubmitting(true)
     
     try {
-      const startDate = new Date()
-      const endDate = new Date()
-      
-      // Calcular fecha de fin según el período
-      switch (periodoPresupuesto) {
-        case 'weekly':
-          endDate.setDate(startDate.getDate() + 7)
-          break
-        case 'monthly':
-          endDate.setMonth(startDate.getMonth() + 1)
-          break
-        case 'yearly':
-          endDate.setFullYear(startDate.getFullYear() + 1)
-          break
-      }
-
       await createBudget({
         name: trimmedName,
-        amount: amount,
+        amount: parseFloat(montoPresupuesto),
         category_id: categoriaPresupuesto,
-        period: periodoPresupuesto as 'weekly' | 'monthly' | 'yearly',
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
+        period: periodoPresupuesto as 'weekly' | 'monthly' | 'quarterly' | 'yearly',
+        start_date: fechaInicio,
+        end_date: fechaFin,
         context_id: currentContext?.id
       })
 
@@ -156,6 +198,8 @@ export default function PresupuestosPage() {
       setNombrePresupuesto('')
       setMontoPresupuesto('')
       setCategoriaPresupuesto('')
+      setFechaInicio(new Date().toISOString().split('T')[0])
+      setFechaFin('')
 
       toast({
         title: "¡Éxito!",
@@ -192,20 +236,31 @@ export default function PresupuestosPage() {
     }
   }
 
-  const getStatusIcon = (spent: number, limit: number) => {
-    const percentage = (spent / limit) * 100
-    if (percentage >= 100) return <AlertTriangle className="h-4 w-4 text-red-500" />
-    if (percentage >= 80) return <AlertTriangle className="h-4 w-4 text-yellow-500" />
-    return <CheckCircle className="h-4 w-4 text-green-500" />
+  const getProgressColor = (percentage: number) => {
+    if (percentage <= 50) return 'bg-green-500'
+    if (percentage <= 80) return 'bg-yellow-500'
+    if (percentage <= 100) return 'bg-orange-500'
+    return 'bg-red-500'
   }
 
-  const formatPeriod = (period: string) => {
-    const periods = {
-      weekly: 'Semanal',
-      monthly: 'Mensual',
-      yearly: 'Anual'
+  const getStatusBadge = (percentage: number) => {
+    if (percentage <= 50) {
+      return <Badge className="bg-green-600"><CheckCircle className="mr-1 h-3 w-3" />En Control</Badge>
+    } else if (percentage <= 80) {
+      return <Badge className="bg-yellow-600"><TrendingUp className="mr-1 h-3 w-3" />Moderado</Badge>
+    } else if (percentage <= 100) {
+      return <Badge className="bg-orange-600"><AlertTriangle className="mr-1 h-3 w-3" />Cerca del Límite</Badge>
+    } else {
+      return <Badge variant="destructive"><AlertTriangle className="mr-1 h-3 w-3" />Excedido</Badge>
     }
-    return periods[period as keyof typeof periods] || period
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(amount)
   }
 
   const formatDate = (dateString: string) => {
@@ -216,22 +271,12 @@ export default function PresupuestosPage() {
     })
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount)
-  }
-
-  // Verificar si los datos están cargando
-  const isLoading = budgetsLoading || progressLoading
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Presupuestos</h1>
         <p className="text-muted-foreground">
-          Controla tus gastos con presupuestos personalizados
+          Controla tus gastos estableciendo límites por categoría
         </p>
       </div>
 
@@ -241,7 +286,7 @@ export default function PresupuestosPage() {
           <CardHeader>
             <CardTitle>Nuevo Presupuesto</CardTitle>
             <CardDescription>
-              Crea un presupuesto para controlar tus gastos
+              Establece un límite de gasto para una categoría específica
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -266,6 +311,23 @@ export default function PresupuestosPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="monto">Monto Límite</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="monto"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="pl-10"
+                    value={montoPresupuesto}
+                    onChange={(e) => setMontoPresupuesto(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría</Label>
                 <Select value={categoriaPresupuesto} onValueChange={setCategoriaPresupuesto}>
                   <SelectTrigger>
@@ -277,7 +339,7 @@ export default function PresupuestosPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {expenseCategories
-                      .filter(category => !budgets.some(budget => budget.category_id === category.id))
+                      .filter(category => !budgets.some(budget => budget.category_id === category.id && budget.is_active))
                       .map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           <div className="flex items-center space-x-2">
@@ -288,47 +350,56 @@ export default function PresupuestosPage() {
                       ))}
                   </SelectContent>
                 </Select>
-                {expenseCategories.length > 0 && budgets.length === expenseCategories.length && (
-                  <p className="text-xs text-muted-foreground">
-                    Todas las categorías ya tienen presupuestos activos
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="monto">Límite de Gasto</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="monto"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    max="999999999"
-                    placeholder="0.00"
-                    className="pl-10"
-                    value={montoPresupuesto}
-                    onChange={(e) => setMontoPresupuesto(e.target.value)}
-                    required
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="periodo">Período</Label>
-                <Select value={periodoPresupuesto} onValueChange={setPeriodoPresupuesto}>
+                <Select value={periodoPresupuesto} onValueChange={handlePeriodChange}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="weekly">Semanal</SelectItem>
                     <SelectItem value="monthly">Mensual</SelectItem>
+                    <SelectItem value="quarterly">Trimestral</SelectItem>
                     <SelectItem value="yearly">Anual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting || expenseCategories.length === 0}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fechaInicio">Fecha Inicio</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="fechaInicio"
+                      type="date"
+                      className="pl-10"
+                      value={fechaInicio}
+                      onChange={(e) => handleStartDateChange(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fechaFin">Fecha Fin</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="fechaFin"
+                      type="date"
+                      className="pl-10"
+                      value={fechaFin}
+                      onChange={(e) => setFechaFin(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -336,17 +407,11 @@ export default function PresupuestosPage() {
                   </>
                 ) : (
                   <>
-                    <Target className="mr-2 h-4 w-4" />
+                    <Plus className="mr-2 h-4 w-4" />
                     Crear Presupuesto
                   </>
                 )}
               </Button>
-              
-              {expenseCategories.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Necesitas crear al menos una categoría de egresos para crear presupuestos
-                </p>
-              )}
             </form>
           </CardContent>
         </Card>
@@ -357,54 +422,79 @@ export default function PresupuestosPage() {
             <CardHeader>
               <CardTitle>Presupuestos Activos</CardTitle>
               <CardDescription>
-                Monitorea el progreso de tus presupuestos
+                Monitorea el progreso de tus presupuestos establecidos
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {/* Filtros y búsqueda */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar presupuestos..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="active">Activos</SelectItem>
+                      <SelectItem value="completed">Completados</SelectItem>
+                      <SelectItem value="exceeded">Excedidos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {loading || progressLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                   <span className="ml-2">Cargando presupuestos...</span>
                 </div>
-              ) : budgets.length === 0 ? (
+              ) : filteredBudgets.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No hay presupuestos registrados</p>
-                  <p className="text-sm">Crea tu primer presupuesto usando el formulario</p>
+                  {searchTerm || filterStatus !== 'all' ? (
+                    <>
+                      <p>No se encontraron presupuestos</p>
+                      <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>No hay presupuestos registrados</p>
+                      <p className="text-sm">Crea tu primer presupuesto usando el formulario</p>
+                    </>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {budgets.map((budget) => {
-                    // Buscar el progreso del presupuesto de forma segura
-                    const progress = budgetProgress?.find(p => p.id === budget.id)
-                    const spent = progress?.spent || budget.spent || 0
-                    const percentage = (spent / budget.amount) * 100
-                    const remaining = budget.amount - spent
-                    const category = expenseCategories.find(c => c.id === budget.category_id)
-                    
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {filteredBudgets.map((budget) => {
+                    const category = categories.find(c => c.id === budget.category_id)
+                    const progress = budgetProgress?.find(p => p.budget_id === budget.id)
+                    const spent = progress?.spent || 0
+                    const percentage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
+
                     return (
-                      <div key={budget.id} className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(spent, budget.amount)}
+                      <div key={budget.id} className="p-4 border rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-lg">{category?.icon || '🎯'}</span>
                             <div>
-                              <h3 className="font-semibold">{budget.name}</h3>
-                              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                                {category && (
-                                  <>
-                                    <span>{category.icon}</span>
-                                    <span>{category.name}</span>
-                                    <span>•</span>
-                                  </>
-                                )}
-                                <span>{formatPeriod(budget.period)}</span>
-                              </div>
+                              <h3 className="font-medium">{budget.name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {category?.name || 'Categoría eliminada'} • {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Badge variant={percentage >= 100 ? "destructive" : percentage >= 80 ? "secondary" : "default"}>
-                              {percentage.toFixed(1)}%
-                            </Badge>
+                            {getStatusBadge(percentage)}
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -420,14 +510,13 @@ export default function PresupuestosPage() {
                             <span>Gastado: {formatCurrency(spent)}</span>
                             <span>Límite: {formatCurrency(budget.amount)}</span>
                           </div>
-                          <Progress value={Math.min(percentage, 100)} className="h-2" />
+                          <Progress 
+                            value={Math.min(percentage, 100)} 
+                            className="h-2"
+                          />
                           <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>
-                              {remaining >= 0 ? `Restante: ${formatCurrency(remaining)}` : `Excedido: ${formatCurrency(Math.abs(remaining))}`}
-                            </span>
-                            <span>
-                              {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
-                            </span>
+                            <span>{percentage.toFixed(1)}% utilizado</span>
+                            <span>Restante: {formatCurrency(Math.max(0, budget.amount - spent))}</span>
                           </div>
                         </div>
                       </div>
