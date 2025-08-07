@@ -34,85 +34,87 @@ export default function AjustesPage() {
   }
 
   return (
-    <div className="h-full">
-      <ScrollArea className="h-full">
+    <div className="h-full flex flex-col">
+      {/* Header fijo */}
+      <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-6xl">
-          {/* Header */}
-          <div className="mb-6 md:mb-8">
+          <div className="mb-4 md:mb-6">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Configuración</h1>
             <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
               Gestiona tu perfil, contextos financieros y preferencias de la aplicación
             </p>
           </div>
-
-          {/* Tabs Navigation */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Tabs List - Responsivo */}
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 md:mb-8 h-auto">
-              <TabsTrigger 
-                value="profile" 
-                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
-              >
-                <User className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden xs:inline sm:hidden md:inline">Perfil de Usuario</span>
-                <span className="xs:hidden sm:inline md:hidden">Perfil</span>
-                <span className="xs:hidden">👤</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="contexts" 
-                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
-              >
-                <Folder className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden xs:inline sm:hidden md:inline">Contextos Financieros</span>
-                <span className="xs:hidden sm:inline md:hidden">Contextos</span>
-                <span className="xs:hidden">📁</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="preferences" 
-                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
-              >
-                <Settings className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden xs:inline sm:hidden md:inline">Preferencias</span>
-                <span className="xs:hidden sm:inline md:hidden">Prefs</span>
-                <span className="xs:hidden">⚙️</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="security" 
-                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
-              >
-                <Shield className="h-4 w-4 flex-shrink-0" />
-                <span className="hidden xs:inline">Seguridad</span>
-                <span className="xs:hidden">🛡️</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab Contents */}
-            <TabsContent value="profile" className="mt-0">
-              <div className="max-w-4xl">
-                <ProfileSettings />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="contexts" className="mt-0">
-              <div className="max-w-4xl">
-                <FinancialContextsSettings />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="preferences" className="mt-0">
-              <div className="max-w-4xl">
-                <AppPreferences />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="security" className="mt-0">
-              <div className="max-w-4xl">
-                <AccountSecurity />
-              </div>
-            </TabsContent>
-          </Tabs>
         </div>
-      </ScrollArea>
+      </div>
+
+      {/* Contenido scrolleable */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-6xl pb-20 md:pb-8">
+            {/* Tabs Navigation */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              {/* Tabs List - Mejorado para móviles */}
+              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 mb-6">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
+                  <TabsTrigger 
+                    value="profile" 
+                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Perfil</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="contexts" 
+                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Folder className="h-4 w-4" />
+                    <span className="hidden sm:inline">Contextos</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="preferences" 
+                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">Preferencias</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="security" 
+                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span className="hidden sm:inline">Seguridad</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Tab Contents */}
+              <TabsContent value="profile" className="mt-0">
+                <div className="max-w-4xl">
+                  <ProfileSettings />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="contexts" className="mt-0">
+                <div className="max-w-4xl">
+                  <FinancialContextsSettings />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="preferences" className="mt-0">
+                <div className="max-w-4xl">
+                  <AppPreferences />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="security" className="mt-0">
+                <div className="max-w-4xl">
+                  <AccountSecurity />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   )
 }
