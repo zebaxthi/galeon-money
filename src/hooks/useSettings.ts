@@ -54,8 +54,8 @@ export function useSettings() {
 
   // Derived preferences
   const preferences: UserPreferences = {
-    currency: (profile?.preferences?.currency || 'USD').toString(),
-    language: (profile?.preferences?.language || 'es').toString(),
+    currency: 'COP', // Fijo en COP
+    language: 'es', // Fijo en español
     notifications: profile?.preferences?.notifications !== false,
     emailNotifications: profile?.preferences?.emailNotifications !== false,
     budgetAlerts: profile?.preferences?.budgetAlerts !== false

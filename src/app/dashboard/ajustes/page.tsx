@@ -639,48 +639,35 @@ export default function AjustesPage() {
               <ThemeToggle />
             </div>
 
+            {/* Información de configuración fija */}
             <Separator />
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Moneda</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Peso Colombiano (COP)
+                  </p>
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  COP
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <Label>Moneda</Label>
-              <Select 
-                value={preferences.currency} 
-                onValueChange={(value) => updatePreferences({ currency: value })}
-              >
-                <SelectTrigger className="w-full">
-                  <div className="flex items-center">
-                    <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Selecciona una moneda" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD - Dólar Estadounidense</SelectItem>
-                  <SelectItem value="EUR">EUR - Euro</SelectItem>
-                  <SelectItem value="MXN">MXN - Peso Mexicano</SelectItem>
-                  <SelectItem value="COP">COP - Peso Colombiano</SelectItem>
-                  <SelectItem value="ARS">ARS - Peso Argentino</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Idioma</Label>
-              <Select 
-                value={preferences.language} 
-                onValueChange={(value) => updatePreferences({ language: value })}
-              >
-                <SelectTrigger className="w-full">
-                  <div className="flex items-center">
-                    <Globe className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Selecciona un idioma" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="pt">Português</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Idioma</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Español
+                  </p>
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Globe className="mr-2 h-4 w-4" />
+                  Español
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
