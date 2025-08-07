@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -14,12 +14,9 @@ import {
   Settings,
   Folder,
   LogOut,
-  Camera,
-  User,
   Wallet,
   ChevronDown,
   ChevronUp,
-  Menu,
   ChevronLeft,
   ChevronRight
 } from "lucide-react"
@@ -71,11 +68,10 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user } = useAuth()
-  const { profile, loading } = useSettings()
+  const { profile } = useSettings()
   const { toast } = useToast()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSignOut = async () => {
     try {
@@ -85,44 +81,6 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
       toast({
         title: "Error",
         description: "No se pudo cerrar la sesión",
-        variant: "destructive"
-      })
-    }
-  }
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file || !user) return
-
-    try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}/avatar.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id)
-
-      if (updateError) throw updateError
-
-      toast({
-        title: "Éxito",
-        description: "Avatar actualizado correctamente"
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el avatar",
         variant: "destructive"
       })
     }
@@ -255,15 +213,6 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
-                  <div
-                    className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full p-0 bg-secondary hover:bg-secondary/80 border border-border flex items-center justify-center cursor-pointer transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      fileInputRef.current?.click()
-                    }}
-                  >
-                    <Camera className="h-3 w-3" />
-                  </div>
                 </div>
                 <div className="flex-1 text-left min-w-0 overflow-hidden">
                   <p className="font-medium text-sm truncate">
@@ -284,21 +233,12 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
             </Button>
           ) : (
             <div className="flex flex-col items-center space-y-2 w-full">
-              <div className="relative">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={profile?.avatar_url || ""} />
-                  <AvatarFallback className="bg-violet-600 text-white">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div
-                  className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full p-0 bg-secondary hover:bg-secondary/80 border border-border flex items-center justify-center cursor-pointer transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Cambiar avatar"
-                >
-                  <Camera className="h-2.5 w-2.5" />
-                </div>
-              </div>
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={profile?.avatar_url || ""} />
+                <AvatarFallback className="bg-violet-600 text-white">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
               <Button
                 variant="ghost"
                 size="sm"
@@ -314,21 +254,6 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
           {/* User Menu Expanded - Solo visible cuando no está colapsado */}
           {!isCollapsed && userMenuOpen && (
             <div className="space-y-2 pl-2 overflow-hidden">
-              {profile?.phone && (
-                <div className="text-xs text-muted-foreground truncate">
-                  📱 {profile.phone}
-                </div>
-              )}
-              {profile?.location && (
-                <div className="text-xs text-muted-foreground truncate">
-                  📍 {profile.location}
-                </div>
-              )}
-              {profile?.bio && (
-                <div className="text-xs text-muted-foreground truncate">
-                  💬 {profile.bio}
-                </div>
-              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -341,15 +266,6 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
             </div>
           )}
         </div>
-
-        {/* Hidden file input for avatar upload */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatarUpload}
-        />
       </div>
     </div>
   )

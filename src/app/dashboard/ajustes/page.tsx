@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,8 +9,12 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useSettings } from "@/hooks/useSettings"
+import { useAuth } from "@/providers/auth-provider"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/lib/supabase"
 import { 
   User, 
   Mail, 
@@ -27,11 +31,18 @@ import {
   Shield,
   LogOut,
   Trash2,
-  Loader2
+  Loader2,
+  Phone,
+  MapPin,
+  MessageSquare,
+  Camera
 } from "lucide-react"
 
 export default function AjustesPage() {
   const router = useRouter()
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const {
     profile,
     context,
@@ -51,6 +62,9 @@ export default function AjustesPage() {
 
   // Estados locales para formularios
   const [nombre, setNombre] = useState('')
+  const [telefono, setTelefono] = useState('')
+  const [ubicacion, setUbicacion] = useState('')
+  const [biografia, setBiografia] = useState('')
   const [contextName, setContextName] = useState('')
   const [contextDescription, setContextDescription] = useState('')
   const [newMemberEmail, setNewMemberEmail] = useState('')
@@ -60,6 +74,9 @@ export default function AjustesPage() {
   useEffect(() => {
     if (profile) {
       setNombre(profile.name || '')
+      setTelefono(profile.phone || '')
+      setUbicacion(profile.location || '')
+      setBiografia(profile.bio || '')
     }
     if (context) {
       setContextName(context.name || '')
@@ -67,15 +84,77 @@ export default function AjustesPage() {
     }
   }, [profile, context])
 
+  // Manejar subida de avatar
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !user) return
+
+    // Validar tamaño del archivo (5MB máximo)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "El archivo es demasiado grande. Máximo 5MB.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      setIsLoadingAction(true)
+      
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/avatar.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+
+      await updateProfile({ avatar_url: publicUrl })
+
+      toast({
+        title: "Éxito",
+        description: "Foto de perfil actualizada correctamente"
+      })
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la foto de perfil",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingAction(false)
+    }
+  }
+
   // Manejar guardado de perfil
   const handleSaveProfile = async () => {
     try {
       setIsLoadingAction(true)
       clearError()
-      await updateProfile({ name: nombre })
-      alert('Perfil actualizado correctamente')
+      await updateProfile({ 
+        name: nombre,
+        phone: telefono,
+        location: ubicacion,
+        bio: biografia
+      })
+      toast({
+        title: "Éxito",
+        description: "Perfil actualizado correctamente"
+      })
     } catch (error) {
       console.error('Error updating profile:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el perfil",
+        variant: "destructive"
+      })
     } finally {
       setIsLoadingAction(false)
     }
@@ -90,9 +169,17 @@ export default function AjustesPage() {
         name: contextName, 
         description: contextDescription 
       })
-      alert('Contexto actualizado correctamente')
+      toast({
+        title: "Éxito",
+        description: "Contexto actualizado correctamente"
+      })
     } catch (error) {
       console.error('Error updating context:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el contexto",
+        variant: "destructive"
+      })
     } finally {
       setIsLoadingAction(false)
     }
@@ -107,9 +194,17 @@ export default function AjustesPage() {
       clearError()
       await inviteMember(newMemberEmail)
       setNewMemberEmail('')
-      alert('Miembro invitado correctamente')
+      toast({
+        title: "Éxito",
+        description: "Miembro invitado correctamente"
+      })
     } catch (error) {
       console.error('Error inviting member:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo invitar al miembro",
+        variant: "destructive"
+      })
     } finally {
       setIsLoadingAction(false)
     }
@@ -123,9 +218,17 @@ export default function AjustesPage() {
       setIsLoadingAction(true)
       clearError()
       await removeMember(userId)
-      alert('Miembro eliminado correctamente')
+      toast({
+        title: "Éxito",
+        description: "Miembro eliminado correctamente"
+      })
     } catch (error) {
       console.error('Error removing member:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar al miembro",
+        variant: "destructive"
+      })
     } finally {
       setIsLoadingAction(false)
     }
@@ -138,6 +241,11 @@ export default function AjustesPage() {
       router.push('/auth/signin')
     } catch (error) {
       console.error('Error signing out:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive"
+      })
     }
   }
 
@@ -151,6 +259,47 @@ export default function AjustesPage() {
       router.push('/')
     } catch (error) {
       console.error('Error deleting account:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la cuenta",
+        variant: "destructive"
+      })
+      setIsLoadingAction(false)
+    }
+  }
+
+  // Manejar eliminación de avatar
+  const handleRemoveAvatar = async () => {
+    if (!user || !profile?.avatar_url) return
+
+    if (!confirm('¿Estás seguro de que quieres eliminar tu foto de perfil?')) return
+
+    try {
+      setIsLoadingAction(true)
+      
+      // Eliminar el archivo del storage si existe
+      if (profile.avatar_url) {
+        const fileName = `${user.id}/avatar.${profile.avatar_url.split('.').pop()}`
+        await supabase.storage
+          .from('avatars')
+          .remove([fileName])
+      }
+
+      // Actualizar el perfil para quitar la URL del avatar
+      await updateProfile({ avatar_url: null })
+
+      toast({
+        title: "Éxito",
+        description: "Foto de perfil eliminada correctamente"
+      })
+    } catch (error) {
+      console.error('Error removing avatar:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la foto de perfil",
+        variant: "destructive"
+      })
+    } finally {
       setIsLoadingAction(false)
     }
   }
@@ -192,6 +341,62 @@ export default function AjustesPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="avatar">Foto de perfil</Label>
+              <div className="flex items-start space-x-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={profile?.avatar_url || ""} />
+                  <AvatarFallback className="bg-violet-600 text-white text-xl">
+                    {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isLoadingAction}
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      {profile?.avatar_url ? 'Cambiar foto' : 'Subir foto'}
+                    </Button>
+                    {profile?.avatar_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemoveAvatar}
+                        disabled={isLoadingAction}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      JPG, PNG o GIF. Máximo 5MB.
+                    </p>
+                    {profile?.avatar_url && (
+                      <p className="text-xs text-green-600">
+                        ✓ Foto de perfil configurada
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="nombre">Nombre completo</Label>
               <Input
                 id="nombre"
@@ -215,6 +420,48 @@ export default function AjustesPage() {
               <p className="text-xs text-muted-foreground">
                 El email no se puede cambiar por motivos de seguridad
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Teléfono</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  placeholder="Tu número de teléfono"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Ubicación</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="location"
+                  value={ubicacion}
+                  onChange={(e) => setUbicacion(e.target.value)}
+                  placeholder="Tu ciudad o país"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">Biografía</Label>
+              <div className="relative">
+                <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="bio"
+                  value={biografia}
+                  onChange={(e) => setBiografia(e.target.value)}
+                  placeholder="Cuéntanos un poco sobre ti"
+                  className="pl-10"
+                />
+              </div>
             </div>
 
             <Button 
