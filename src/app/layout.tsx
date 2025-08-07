@@ -1,16 +1,26 @@
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import type { Metadata, Viewport } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/providers/theme-provider"
-import { QueryProvider } from "@/providers/query-provider"
 import { AuthProvider } from "@/providers/auth-provider"
+import { QueryProvider } from "@/providers/query-provider"
+import { AuthListener } from "@/providers/auth-listener"
 import { Toaster } from "@/components/ui/toaster"
+import { InstallPrompt } from "@/components/pwa/install-prompt"
 
-const inter = Inter({ subsets: ["latin"] })
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+})
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+})
 
 export const metadata: Metadata = {
-  title: "Galeon Money",
-  description: "Gestiona tus finanzas de manera inteligente",
+  title: "Galeon Money - Finanzas Personales",
+  description: "Gestiona tus finanzas de manera inteligente con Galeon Money",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -23,67 +33,60 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Galeon Money",
-    title: "Galeon Money",
+    title: "Galeon Money - Finanzas Personales",
     description: "Gestiona tus finanzas de manera inteligente",
   },
   twitter: {
     card: "summary",
-    title: "Galeon Money",
+    title: "Galeon Money - Finanzas Personales",
     description: "Gestiona tus finanzas de manera inteligente",
   },
-  icons: {
-    icon: [
-      { url: '/icons/icon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/icons/icon-32x32.png', sizes: '32x32', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/icons/icon-180x180.png', sizes: '180x180', type: 'image/png' },
-    ],
-  },
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#8b5cf6" },
+    { media: "(prefers-color-scheme: dark)", color: "#8b5cf6" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <meta name="application-name" content="Galeon Money" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Galeon Money" />
-        <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#8b5cf6" />
-        <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="theme-color" content="#8b5cf6" />
-
-        <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
-
-        <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="shortcut icon" href="/icons/icon-32x32.png" />
       </head>
-      <body className={inter.className}>
-        <QueryProvider>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            <AuthProvider>
+              <AuthListener />
               {children}
               <Toaster />
-            </ThemeProvider>
-          </AuthProvider>
-        </QueryProvider>
+              <InstallPrompt />
+            </AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -3,9 +3,8 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
-import { DashboardNav } from "@/components/dashboard/dashboard-nav"
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
-import type { UserData } from "@/lib/types"
+import { ImprovedSidebar } from "@/components/dashboard/improved-sidebar"
+import { MobileSidebar } from "@/components/dashboard/mobile-sidebar"
 
 export default function DashboardLayout({
   children,
@@ -34,25 +33,22 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader user={user as unknown as UserData} />
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block w-64 border-r bg-muted/10">
-          <DashboardNav />
-        </div>
-        
-        {/* Main Content */}
-        <div className="flex-1 lg:pl-0">
-          <main className="container mx-auto px-4 py-6 pb-20 lg:pb-6">
-            {children}
-          </main>
-        </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block w-80 flex-shrink-0">
+        <ImprovedSidebar />
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t bg-background">
-        <DashboardNav isMobile />
+      {/* Mobile Sidebar */}
+      <MobileSidebar />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   )
