@@ -1,786 +1,118 @@
-'use client'
+"use client"
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { useSettings } from "@/hooks/useSettings"
-import { useAuth } from "@/providers/auth-provider"
-import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/lib/supabase"
-import { 
-  User, 
-  Mail, 
-  Save, 
-  Users, 
-  UserPlus, 
-  Crown, 
-  X, 
-  Plus,
-  Palette,
-  DollarSign,
-  Globe,
-  Bell,
-  Shield,
-  LogOut,
-  Trash2,
-  Loader2,
-  Phone,
-  MapPin,
-  MessageSquare,
-  Camera
-} from "lucide-react"
+import { useState } from 'react'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ProfileSettings } from '@/components/dashboard/profile-settings'
+import { FinancialContextsSettings } from '@/components/dashboard/financial-contexts-settings'
+import { AppPreferences } from '@/components/dashboard/app-preferences'
+import { AccountSecurity } from '@/components/dashboard/account-security'
+import { useSettings } from '@/hooks/useSettings'
+import { Loader2, User, Folder, Settings, Shield } from 'lucide-react'
 
 export default function AjustesPage() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const {
-    profile,
-    context,
-    contextMembers,
-    preferences,
-    loading,
-    error,
-    updateProfile,
-    updatePreferences,
-    updateContext,
-    inviteMember,
-    removeMember,
-    signOut,
-    deleteAccount,
-    clearError
-  } = useSettings()
-
-  // Estados locales para formularios
-  const [nombre, setNombre] = useState('')
-  const [telefono, setTelefono] = useState('')
-  const [ubicacion, setUbicacion] = useState('')
-  const [biografia, setBiografia] = useState('')
-  const [contextName, setContextName] = useState('')
-  const [contextDescription, setContextDescription] = useState('')
-  const [newMemberEmail, setNewMemberEmail] = useState('')
-  
-  // Estados de carga por zonas
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-  const [isLoadingContext, setIsLoadingContext] = useState(false)
-  const [isLoadingMembers, setIsLoadingMembers] = useState(false)
-  const [isLoadingAccount, setIsLoadingAccount] = useState(false)
-
-  // Inicializar estados cuando se cargan los datos
-  useEffect(() => {
-    if (profile) {
-      setNombre(profile.name || '')
-      setTelefono(profile.phone || '')
-      setUbicacion(profile.location || '')
-      setBiografia(profile.bio || '')
-    }
-    if (context) {
-      setContextName(context.name || '')
-      setContextDescription(context.description || '')
-    }
-  }, [profile, context])
-
-  // Manejar subida de avatar
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file || !user) return
-
-    // Validar tamaño del archivo (5MB máximo)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "El archivo es demasiado grande. Máximo 5MB.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    try {
-      setIsLoadingProfile(true)
-      
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}/avatar.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-
-      await updateProfile({ avatar_url: publicUrl })
-
-      toast({
-        title: "Éxito",
-        description: "Foto de perfil actualizada correctamente"
-      })
-    } catch (error) {
-      console.error('Error uploading avatar:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar la foto de perfil",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingProfile(false)
-    }
-  }
-
-  // Manejar eliminación de avatar
-  const handleRemoveAvatar = async () => {
-    if (!user || !profile?.avatar_url) return
-
-    if (!confirm('¿Estás seguro de que quieres eliminar tu foto de perfil?')) return
-
-    try {
-      setIsLoadingProfile(true)
-      
-      // Eliminar el archivo del storage si existe
-      if (profile.avatar_url) {
-        const fileName = `${user.id}/avatar.${profile.avatar_url.split('.').pop()}`
-        await supabase.storage
-          .from('avatars')
-          .remove([fileName])
-      }
-
-      // Actualizar el perfil para quitar la URL del avatar
-      await updateProfile({ avatar_url: null })
-
-      toast({
-        title: "Éxito",
-        description: "Foto de perfil eliminada correctamente"
-      })
-    } catch (error) {
-      console.error('Error removing avatar:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar la foto de perfil",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingProfile(false)
-    }
-  }
-
-  // Manejar guardado de perfil
-  const handleSaveProfile = async () => {
-    try {
-      setIsLoadingProfile(true)
-      clearError()
-      await updateProfile({ 
-        name: nombre,
-        phone: telefono,
-        location: ubicacion,
-        bio: biografia
-      })
-      toast({
-        title: "Éxito",
-        description: "Perfil actualizado correctamente"
-      })
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el perfil",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingProfile(false)
-    }
-  }
-
-  // Manejar actualización de contexto
-  const handleUpdateContext = async () => {
-    try {
-      setIsLoadingContext(true)
-      clearError()
-      await updateContext({ 
-        name: contextName, 
-        description: contextDescription 
-      })
-      toast({
-        title: "Éxito",
-        description: "Contexto actualizado correctamente"
-      })
-    } catch (error) {
-      console.error('Error updating context:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el contexto",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingContext(false)
-    }
-  }
-
-  // Manejar invitación de miembro
-  const handleInviteMember = async () => {
-    if (!newMemberEmail.trim()) return
-    
-    try {
-      setIsLoadingMembers(true)
-      clearError()
-      await inviteMember(newMemberEmail)
-      setNewMemberEmail('')
-      toast({
-        title: "Éxito",
-        description: "Miembro invitado correctamente"
-      })
-    } catch (error) {
-      console.error('Error inviting member:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo invitar al miembro",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingMembers(false)
-    }
-  }
-
-  // Manejar eliminación de miembro
-  const handleRemoveMember = async (userId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este miembro?')) return
-    
-    try {
-      setIsLoadingMembers(true)
-      clearError()
-      await removeMember(userId)
-      toast({
-        title: "Éxito",
-        description: "Miembro eliminado correctamente"
-      })
-    } catch (error) {
-      console.error('Error removing member:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar al miembro",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingMembers(false)
-    }
-  }
-
-  // Manejar cierre de sesión
-  const handleSignOut = async () => {
-    try {
-      setIsLoadingAccount(true)
-      await signOut()
-      router.push('/auth/signin')
-    } catch (error) {
-      console.error('Error signing out:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
-        variant: "destructive"
-      })
-      setIsLoadingAccount(false)
-    }
-  }
-
-  // Manejar eliminación de cuenta
-  const handleDeleteAccount = async () => {
-    if (!confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) return
-    
-    try {
-      setIsLoadingAccount(true)
-      await deleteAccount()
-      router.push('/')
-    } catch (error) {
-      console.error('Error deleting account:', error)
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar la cuenta",
-        variant: "destructive"
-      })
-      setIsLoadingAccount(false)
-    }
-  }
+  const { loading, error } = useSettings()
+  const [activeTab, setActiveTab] = useState("profile")
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
   }
 
-  return (
-    <div className="space-y-4 lg:space-y-6">
-      <div className="px-1">
-        <h1 className="text-2xl lg:text-3xl font-bold">Ajustes</h1>
-        <p className="text-muted-foreground text-sm lg:text-base">
-          Configura tu cuenta y preferencias de la aplicación
-        </p>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mx-1">
-          {error?.toString()}
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-destructive">Error al cargar la configuración</p>
+          <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
         </div>
-      )}
-
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
-        {/* Perfil de Usuario */}
-        <Card className="mx-1 lg:mx-0">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center text-lg lg:text-xl">
-              <User className="mr-2 h-5 w-5" />
-              Perfil de Usuario
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Actualiza tu información personal
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="avatar" className="text-sm font-medium">Foto de perfil</Label>
-              <div className="flex items-start space-x-3 lg:space-x-4">
-                <Avatar className="h-20 w-20 lg:h-24 lg:w-24 flex-shrink-0">
-                  <AvatarImage src={profile?.avatar_url || ""} />
-                  <AvatarFallback className="bg-violet-600 text-white text-lg lg:text-xl">
-                    {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-3 min-w-0">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoadingProfile}
-                      className="flex-1 sm:flex-none"
-                    >
-                      <Camera className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{profile?.avatar_url ? 'Cambiar foto' : 'Subir foto'}</span>
-                    </Button>
-                    {profile?.avatar_url && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRemoveAvatar}
-                        disabled={isLoadingProfile}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-none"
-                      >
-                        {isLoadingProfile ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
-                        ) : (
-                          <Trash2 className="mr-2 h-4 w-4 flex-shrink-0" />
-                        )}
-                        <span className="truncate">{isLoadingProfile ? 'Procesando...' : 'Eliminar'}</span>
-                      </Button>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">
-                      JPG, PNG o GIF. Máximo 5MB.
-                    </p>
-                    {profile?.avatar_url && (
-                      <p className="text-xs text-green-600">
-                        ✓ Foto de perfil configurada
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarUpload}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nombre" className="text-sm font-medium">Nombre completo</Label>
-                <Input
-                  id="nombre"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Tu nombre"
-                  className="text-base"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    value={profile?.email || ''}
-                    disabled
-                    className="pl-10 bg-muted text-base"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  El email no se puede cambiar por motivos de seguridad
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">Teléfono</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                    placeholder="Tu número de teléfono"
-                    className="pl-10 text-base"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="location" className="text-sm font-medium">Ubicación</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="location"
-                    value={ubicacion}
-                    onChange={(e) => setUbicacion(e.target.value)}
-                    placeholder="Tu ciudad o país"
-                    className="pl-10 text-base"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio" className="text-sm font-medium">Biografía</Label>
-                <div className="relative">
-                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="bio"
-                    value={biografia}
-                    onChange={(e) => setBiografia(e.target.value)}
-                    placeholder="Cuéntanos un poco sobre ti"
-                    className="pl-10 text-base"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Button 
-              onClick={handleSaveProfile} 
-              disabled={isLoadingProfile}
-              className="w-full h-11"
-            >
-              {isLoadingProfile ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isLoadingProfile ? 'Guardando...' : 'Guardar Cambios'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Resto de las cards con mejoras similares para móviles */}
-        {/* Contexto Financiero Compartido */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Users className="mr-2 h-5 w-5" />
-              Contexto Financiero
-            </CardTitle>
-            <CardDescription>
-              Gestiona las finanzas compartidas con otras personas
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="contextName">Nombre del contexto</Label>
-              <Input
-                id="contextName"
-                value={contextName}
-                onChange={(e) => setContextName(e.target.value)}
-                placeholder="Ej: Finanzas Familiares"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="contextDescription">Descripción</Label>
-              <Input
-                id="contextDescription"
-                value={contextDescription}
-                onChange={(e) => setContextDescription(e.target.value)}
-                placeholder="Descripción opcional"
-              />
-            </div>
-
-            <Button 
-              onClick={handleUpdateContext} 
-              disabled={isLoadingContext}
-              className="w-full"
-            >
-              {isLoadingContext ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isLoadingContext ? 'Guardando...' : 'Actualizar Contexto'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Miembros del Contexto */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <UserPlus className="mr-2 h-5 w-5" />
-              Miembros del Contexto
-            </CardTitle>
-            <CardDescription>
-              Invita a otras personas para que puedan gestionar las finanzas contigo
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Agregar nuevo miembro */}
-            <div className="flex gap-2">
-              <Input
-                value={newMemberEmail}
-                onChange={(e) => setNewMemberEmail(e.target.value)}
-                placeholder="Email del nuevo miembro"
-                type="email"
-              />
-              <Button 
-                onClick={handleInviteMember}
-                disabled={isLoadingMembers || !newMemberEmail.trim()}
-              >
-                {isLoadingMembers ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
-            <Separator />
-
-            {/* Lista de miembros */}
-            <div className="space-y-3">
-              {contextMembers.map((member) => (
-                <div key={member.user_id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
-                      {member.role === 'owner' && (
-                        <Crown className="h-4 w-4 text-yellow-500" />
-                      )}
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{member.profile?.name || 'Sin nombre'}</p>
-                      <p className="text-sm text-muted-foreground">{member.profile?.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs bg-muted px-2 py-1 rounded">
-                      {member.role === 'owner' ? 'Propietario' : 'Miembro'}
-                    </span>
-                    {member.role !== 'owner' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveMember(member.user_id)}
-                        disabled={isLoadingMembers}
-                      >
-                        {isLoadingMembers ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <X className="h-4 w-4" />
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Preferencias de la Aplicación */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Palette className="mr-2 h-5 w-5" />
-              Preferencias
-            </CardTitle>
-            <CardDescription>
-              Personaliza tu experiencia en la aplicación
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Tema</Label>
-                <p className="text-sm text-muted-foreground">
-                  Cambia entre tema claro y oscuro
-                </p>
-              </div>
-              <ThemeToggle />
-            </div>
-
-            {/* Información de configuración fija */}
-            <Separator />
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Moneda</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Peso Colombiano (COP)
-                  </p>
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  COP
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Idioma</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Español
-                  </p>
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Globe className="mr-2 h-4 w-4" />
-                  Español
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Notificaciones */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Bell className="mr-2 h-5 w-5" />
-              Notificaciones
-            </CardTitle>
-            <CardDescription>
-              Configura cómo quieres recibir notificaciones
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Notificaciones Push</Label>
-                <p className="text-sm text-muted-foreground">
-                  Recibe notificaciones en tu dispositivo
-                </p>
-              </div>
-              <Switch
-                checked={preferences.notifications}
-                onCheckedChange={(checked) => updatePreferences({ notifications: checked })}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Notificaciones por Email</Label>
-                <p className="text-sm text-muted-foreground">
-                  Recibe resúmenes mensuales por correo
-                </p>
-              </div>
-              <Switch
-                checked={preferences.emailNotifications}
-                onCheckedChange={(checked) => updatePreferences({ emailNotifications: checked })}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Alertas de Presupuesto</Label>
-                <p className="text-sm text-muted-foreground">
-                  Avisos cuando excedas tus presupuestos
-                </p>
-              </div>
-              <Switch
-                checked={preferences.budgetAlerts}
-                onCheckedChange={(checked) => updatePreferences({ budgetAlerts: checked })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Seguridad y Cuenta */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Shield className="mr-2 h-5 w-5" />
-              Seguridad y Cuenta
-            </CardTitle>
-            <CardDescription>
-              Gestiona la seguridad de tu cuenta
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Button variant="outline" className="w-full">
-                Cambiar Contraseña
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={handleSignOut} 
-                className="w-full"
-                disabled={isLoadingAccount}
-              >
-                {isLoadingAccount ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <LogOut className="mr-2 h-4 w-4" />
-                )}
-                {isLoadingAccount ? 'Cerrando sesión...' : 'Cerrar Sesión'}
-              </Button>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <h4 className="font-medium text-red-600">Zona de Peligro</h4>
-              <p className="text-sm text-muted-foreground">
-                Estas acciones son irreversibles
-              </p>
-              <Button 
-                variant="destructive" 
-                onClick={handleDeleteAccount}
-                disabled={isLoadingAccount}
-                className="w-full"
-              >
-                {isLoadingAccount ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="mr-2 h-4 w-4" />
-                )}
-                {isLoadingAccount ? 'Eliminando...' : 'Eliminar Cuenta'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+    )
+  }
+
+  return (
+    <div className="h-full">
+      <ScrollArea className="h-full">
+        <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-6xl">
+          {/* Header */}
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Configuración</h1>
+            <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
+              Gestiona tu perfil, contextos financieros y preferencias de la aplicación
+            </p>
+          </div>
+
+          {/* Tabs Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            {/* Tabs List - Responsivo */}
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 md:mb-8 h-auto">
+              <TabsTrigger 
+                value="profile" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <User className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden xs:inline sm:hidden md:inline">Perfil de Usuario</span>
+                <span className="xs:hidden sm:inline md:hidden">Perfil</span>
+                <span className="xs:hidden">👤</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="contexts" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <Folder className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden xs:inline sm:hidden md:inline">Contextos Financieros</span>
+                <span className="xs:hidden sm:inline md:hidden">Contextos</span>
+                <span className="xs:hidden">📁</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="preferences" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <Settings className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden xs:inline sm:hidden md:inline">Preferencias</span>
+                <span className="xs:hidden sm:inline md:hidden">Prefs</span>
+                <span className="xs:hidden">⚙️</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="security" 
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm"
+              >
+                <Shield className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden xs:inline">Seguridad</span>
+                <span className="xs:hidden">🛡️</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tab Contents */}
+            <TabsContent value="profile" className="mt-0">
+              <div className="max-w-4xl">
+                <ProfileSettings />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="contexts" className="mt-0">
+              <div className="max-w-4xl">
+                <FinancialContextsSettings />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="preferences" className="mt-0">
+              <div className="max-w-4xl">
+                <AppPreferences />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="security" className="mt-0">
+              <div className="max-w-4xl">
+                <AccountSecurity />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </ScrollArea>
     </div>
   )
 }
