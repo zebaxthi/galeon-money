@@ -21,7 +21,6 @@ import {
 import { 
   Target, 
   DollarSign, 
-  Calendar, 
   TrendingUp, 
   AlertTriangle, 
   CheckCircle, 
@@ -55,7 +54,7 @@ export default function PresupuestosPage() {
   // Calcular fecha de fin automática
   const calculateEndDate = (startDate: string, period: string) => {
     const start = new Date(startDate)
-    let end = new Date(start)
+    const end = new Date(start)
     
     switch (period) {
       case 'weekly':
@@ -274,13 +273,6 @@ export default function PresupuestosPage() {
     }
   }
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage <= 50) return 'bg-green-500'
-    if (percentage <= 80) return 'bg-yellow-500'
-    if (percentage <= 100) return 'bg-orange-500'
-    return 'bg-red-500'
-  }
-
   const getStatusBadge = (percentage: number) => {
     if (percentage <= 50) {
       return <Badge className="bg-green-600"><CheckCircle className="mr-1 h-3 w-3" />En Control</Badge>
@@ -466,7 +458,7 @@ export default function PresupuestosPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Filter className="h-4 w-4 text-muted-foreground" />
-                  <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
+                  <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as 'all' | 'active' | 'completed' | 'exceeded')}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
@@ -501,7 +493,7 @@ export default function PresupuestosPage() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
+                <div className="space-y-4 max-h-[60vh] sm:max-h-96 overflow-y-auto overscroll-contain">
                   {filteredBudgets.map((budget) => {
                     const category = categories.find(c => c.id === budget.category_id)
                     const progress = budgetProgress?.find(p => p.id === budget.id)

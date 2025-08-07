@@ -5,6 +5,10 @@ interface PWAInstallPrompt extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean
+}
+
 export function usePWA() {
   const [isInstallable, setIsInstallable] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
@@ -14,7 +18,7 @@ export function usePWA() {
     // Check if app is already installed
     const checkIfInstalled = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      const isInWebAppiOS = (window.navigator as any).standalone === true
+      const isInWebAppiOS = (window.navigator as NavigatorWithStandalone).standalone === true
       setIsInstalled(isStandalone || isInWebAppiOS)
     }
 

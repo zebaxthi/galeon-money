@@ -75,9 +75,6 @@ export default function CategoriasPage() {
     )
   }
 
-  const ingresos = getCategoriesByType('income')
-  const egresos = getCategoriesByType('expense')
-
   // Filtrar categorías por búsqueda y tipo
   const filteredCategories = categories.filter(category => {
     const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())

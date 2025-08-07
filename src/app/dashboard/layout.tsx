@@ -18,9 +18,9 @@ export default function DashboardLayout({
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <main className="flex-1 overflow-y-auto">
-              <div className="h-full p-4 pb-20 md:pb-4">
+          <div className="flex-1 flex flex-col min-w-0">
+            <main className="flex-1 overflow-y-auto overscroll-contain">
+              <div className="min-h-full p-4 pb-20 md:pb-4">
                 <div className="max-w-full">
                   {children}
                 </div>

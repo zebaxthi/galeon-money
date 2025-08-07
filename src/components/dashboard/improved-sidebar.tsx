@@ -77,7 +77,7 @@ export function ImprovedSidebar({ className }: ImprovedSidebarProps) {
     try {
       await supabase.auth.signOut()
       router.push("/")
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "No se pudo cerrar la sesión",

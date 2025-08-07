@@ -21,9 +21,17 @@ import {
   Trash2
 } from 'lucide-react'
 
+interface UserProfile {
+  name?: string
+  phone?: string
+  location?: string
+  bio?: string
+  avatar_url?: string | null
+}
+
 interface ProfileSettingsProps {
-  profile: any
-  updateProfile: (updates: any) => Promise<void>
+  profile: UserProfile
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   clearError: () => void
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,8 +17,7 @@ import {
   getCurrentBogotaDate, 
   dateInputToUTC, 
   dateUTCToBogota, 
-  formatDateForDisplay,
-  formatShortDate 
+  formatDateForDisplay
 } from "@/lib/utils"
 import { 
   Plus, 
@@ -249,16 +248,8 @@ export default function MovimientosPage() {
     return `${prefix}$${amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
+    <div className="space-y-6 max-w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold truncate">Movimientos</h1>
@@ -495,7 +486,7 @@ export default function MovimientosPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
+              <div className="space-y-4 max-h-[60vh] sm:max-h-96 overflow-y-auto overscroll-contain">
                 {filteredMovements.map((movement) => {
                   const category = categories.find(c => c.id === movement.category_id)
                   return (

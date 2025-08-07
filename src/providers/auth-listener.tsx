@@ -9,7 +9,7 @@ export function AuthListener() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event) => {
         if (event === 'SIGNED_OUT') {
           queryClient.clear() // Limpiar cache al cerrar sesión
         }

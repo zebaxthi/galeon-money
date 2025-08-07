@@ -6,8 +6,7 @@ import {
   Home, 
   Plus, 
   BarChart3, 
-  Target, 
-  Settings,
+  Target,
   Menu
 } from "lucide-react"
 import Link from "next/link"

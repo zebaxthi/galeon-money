@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/providers/auth-provider'
 import { FinancialContextService } from '@/lib/services/financial-contexts'
 import type { FinancialContext } from '@/lib/types'
@@ -15,37 +16,84 @@ interface FinancialContextState {
 
 const FinancialContextContext = createContext<FinancialContextState | undefined>(undefined)
 
+// Función para obtener contexto desde localStorage
+const getContextFromStorage = (): FinancialContext | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem('activeFinancialContext')
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
+// Función para guardar contexto en localStorage
+const saveContextToStorage = (context: FinancialContext | null) => {
+  if (typeof window === 'undefined') return
+  try {
+    if (context) {
+      localStorage.setItem('activeFinancialContext', JSON.stringify(context))
+    } else {
+      localStorage.removeItem('activeFinancialContext')
+    }
+  } catch (error) {
+    console.warn('Error saving context to localStorage:', error)
+  }
+}
+
 export function FinancialContextProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
-  const [activeContext, setActiveContextState] = useState<FinancialContext | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [error, setError] = useState<Error | null>(null)
 
-  const loadActiveContext = async () => {
-    if (!user) {
-      setActiveContextState(null)
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      setIsLoading(true)
-      setError(null)
+  // Usar React Query para manejar el contexto activo
+  const {
+    data: activeContext,
+    isLoading,
+    error: queryError
+  } = useQuery({
+    queryKey: ['active-financial-context', user?.id],
+    queryFn: async () => {
+      if (!user) return null
+      
+      // Intentar obtener desde localStorage primero
+      const cachedContext = getContextFromStorage()
+      if (cachedContext && cachedContext.user_id === user.id) {
+        return cachedContext
+      }
+      
+      // Si no hay cache válido, obtener desde API
       const context = await FinancialContextService.getCurrentContext(user.id)
-      setActiveContextState(context)
-    } catch (err) {
-      setError(err as Error)
-      console.error('Error loading active context:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      
+      // Guardar en localStorage
+      saveContextToStorage(context)
+      
+      return context
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000, // 10 minutos - contexto cambia poco
+    gcTime: 30 * 60 * 1000, // 30 minutos en cache
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  })
+
+  // Sincronizar error de query con estado local
+  useEffect(() => {
+    setError(queryError as Error | null)
+  }, [queryError])
 
   const setActiveContext = async (contextId: string) => {
     try {
       setError(null)
       await FinancialContextService.setActiveContext(contextId)
-      await loadActiveContext() // Recargar el contexto activo
+      
+      // Invalidar y refetch el contexto activo
+      await queryClient.invalidateQueries({ 
+        queryKey: ['active-financial-context', user?.id] 
+      })
+      
+      // Limpiar localStorage para forzar nueva carga
+      saveContextToStorage(null)
     } catch (err) {
       setError(err as Error)
       throw err
@@ -53,19 +101,26 @@ export function FinancialContextProvider({ children }: { children: React.ReactNo
   }
 
   const refreshContext = async () => {
-    await loadActiveContext()
+    // Limpiar cache y localStorage
+    saveContextToStorage(null)
+    await queryClient.invalidateQueries({ 
+      queryKey: ['active-financial-context', user?.id] 
+    })
   }
 
+  // Limpiar localStorage cuando el usuario cambia
   useEffect(() => {
-    loadActiveContext()
+    if (!user) {
+      saveContextToStorage(null)
+    }
   }, [user])
 
   const value: FinancialContextState = {
-    activeContext,
+    activeContext: activeContext || null,
     isLoading,
     error,
     setActiveContext,
-    refreshContext
+    refreshContext,
   }
 
   return (

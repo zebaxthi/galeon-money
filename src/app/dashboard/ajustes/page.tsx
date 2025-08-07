@@ -13,16 +13,11 @@ import { Loader2, User, Folder, Settings, Shield } from 'lucide-react'
 export default function AjustesPage() {
   const { 
     profile, 
-    context, 
-    contextMembers, 
     preferences, 
     loading, 
     error, 
     updateProfile, 
     updatePreferences, 
-    updateContext, 
-    inviteMember, 
-    removeMember, 
     signOut, 
     deleteAccount, 
     clearError 

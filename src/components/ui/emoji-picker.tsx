@@ -114,7 +114,7 @@ export function EmojiPicker({ value, onChange, className }: EmojiPickerProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Puedes copiar y pegar cualquier emoji. Presiona Enter o haz clic en "Usar" para aplicarlo.
+                  Puedes copiar y pegar cualquier emoji. Presiona Enter o haz clic en &quot;Usar&quot; para aplicarlo.
                 </p>
               </div>
             </CardContent>

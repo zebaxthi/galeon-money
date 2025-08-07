@@ -16,9 +16,15 @@ import {
   Settings2
 } from 'lucide-react'
 
+interface UserPreferences {
+  notifications?: boolean
+  emailNotifications?: boolean
+  budgetAlerts?: boolean
+}
+
 interface AppPreferencesProps {
-  preferences: any
-  updatePreferences: (updates: any) => Promise<void>
+  preferences: UserPreferences
+  updatePreferences: (updates: Partial<UserPreferences>) => Promise<void>
 }
 
 export function AppPreferences({ preferences, updatePreferences }: AppPreferencesProps) {

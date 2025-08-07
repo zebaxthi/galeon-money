@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/providers/auth-provider'
 import { AuthService } from '@/lib/services/auth'
 import { FinancialContextService } from '@/lib/services/financial-contexts'
-import type { FinancialContext, ContextMember } from '@/lib/types'
 
 interface UserPreferences {
   currency: string
