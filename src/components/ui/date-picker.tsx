@@ -36,6 +36,17 @@ export function DatePicker({
     selectedDate || new Date()
   )
 
+  // Sincronizar el estado interno con el prop value
+  React.useEffect(() => {
+    if (value) {
+      const newDate = new Date(value)
+      setSelectedDate(newDate)
+      setCurrentMonth(newDate)
+    } else {
+      setSelectedDate(null)
+    }
+  }, [value])
+
   const formatDate = (date: Date | null) => {
     if (!date) return ""
     return date.toLocaleDateString("es-ES", {
@@ -115,7 +126,7 @@ export function DatePicker({
           />
         </div>
       </DialogTrigger>
-      <DialogContent className="w-auto p-0">
+      <DialogContent className="w-[320px] sm:w-auto p-0">
         <DialogHeader className="p-4 pb-0">
           <DialogTitle className="sr-only">Seleccionar fecha</DialogTitle>
         </DialogHeader>
@@ -126,30 +137,30 @@ export function DatePicker({
               variant="outline"
               size="sm"
               onClick={() => navigateMonth('prev')}
-              className="h-8 w-8 p-0"
+              className="h-10 w-10 p-0"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="font-semibold">
+            <div className="font-semibold text-base">
               {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigateMonth('next')}
-              className="h-8 w-8 p-0"
+              className="h-10 w-10 p-0"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-2">
             {/* Day headers */}
             {dayNames.map((day) => (
               <div
                 key={day}
-                className="h-8 w-8 flex items-center justify-center text-xs font-medium text-muted-foreground"
+                className="h-10 w-10 flex items-center justify-center text-xs font-medium text-muted-foreground"
               >
                 {day}
               </div>
@@ -158,7 +169,7 @@ export function DatePicker({
             {/* Calendar days */}
             {days.map((day, index) => {
               if (!day) {
-                return <div key={index} className="h-8 w-8" />
+                return <div key={index} className="h-10 w-10" />
               }
 
               const isSelected = selectedDate && 
@@ -177,7 +188,7 @@ export function DatePicker({
                   variant={isSelected ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "h-8 w-8 p-0 font-normal",
+                    "h-10 w-10 p-0 font-normal text-sm",
                     isToday && !isSelected && "bg-accent text-accent-foreground",
                     isSelected && "bg-primary text-primary-foreground"
                   )}

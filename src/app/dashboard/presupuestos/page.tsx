@@ -33,7 +33,18 @@ export default function PresupuestosPage() {
   const [categoriaPresupuesto, setCategoriaPresupuesto] = useState('')
   const [periodoPresupuesto, setPeriodoPresupuesto] = useState('monthly')
   const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().split('T')[0])
-  const [fechaFin, setFechaFin] = useState('')
+  const [fechaFin, setFechaFin] = useState(() => {
+    // Calcular fecha fin inicial basada en la fecha de inicio y período por defecto
+    const start = new Date()
+    const end = new Date(start)
+    end.setMonth(start.getMonth() + 1)
+    end.setDate(start.getDate() - 1)
+    return end.toISOString().split('T')[0]
+  })
+  const [editFechaInicio, setEditFechaInicio] = useState('')
+  const [editFechaFin, setEditFechaFin] = useState('')
+
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'exceeded' | 'completed'>('all')
@@ -103,20 +114,23 @@ export default function PresupuestosPage() {
     if (fechaInicio && !fechaFin) {
       setFechaFin(calculateEndDate(fechaInicio, periodoPresupuesto))
     }
-  }, [fechaInicio, periodoPresupuesto, fechaFin]) // Agregar dependencias
+  }, [fechaInicio, periodoPresupuesto]) // Remover fechaFin de las dependencias
+
+  // Recalcular fecha fin cuando cambian fechaInicio o periodoPresupuesto
+  useEffect(() => {
+    if (fechaInicio) {
+      setFechaFin(calculateEndDate(fechaInicio, periodoPresupuesto))
+    }
+  }, [fechaInicio, periodoPresupuesto])
 
   const handlePeriodChange = (period: string) => {
     setPeriodoPresupuesto(period)
-    if (fechaInicio) {
-      setFechaFin(calculateEndDate(fechaInicio, period))
-    }
+    // Ya no necesitamos calcular manualmente aquí porque el useEffect lo hará
   }
 
   const handleStartDateChange = (date: string) => {
     setFechaInicio(date)
-    if (date) {
-      setFechaFin(calculateEndDate(date, periodoPresupuesto))
-    }
+    // Ya no necesitamos calcular manualmente aquí porque el useEffect lo hará
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -363,12 +377,7 @@ export default function PresupuestosPage() {
                 <Label htmlFor="periodo">Período</Label>
                 <Select value={periodoPresupuesto} onValueChange={handlePeriodChange}>
                   <SelectTrigger>
-                    <SelectValue>
-                      {periodoPresupuesto === 'weekly' && 'Semanal'}
-                      {periodoPresupuesto === 'monthly' && 'Mensual'}
-                      {periodoPresupuesto === 'quarterly' && 'Trimestral'}
-                      {periodoPresupuesto === 'yearly' && 'Anual'}
-                    </SelectValue>
+                    <SelectValue placeholder="Mensual" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="weekly">Semanal</SelectItem>
