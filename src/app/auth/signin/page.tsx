@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Mail, Lock, Eye, EyeOff, Wallet, ArrowLeft } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase, getSiteUrl } from "@/lib/supabase"
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -47,7 +47,7 @@ export default function SignInPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${getSiteUrl()}/dashboard`
         }
       })
       

@@ -5,7 +5,9 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { useNotifications } from '@/hooks/useNotifications'
 import { 
   Palette, 
   DollarSign, 
@@ -13,7 +15,11 @@ import {
   Bell,
   Mail,
   TrendingUp,
-  Settings2
+  Settings2,
+  Smartphone,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from 'lucide-react'
 
 interface UserPreferences {
@@ -28,6 +34,15 @@ interface AppPreferencesProps {
 }
 
 export function AppPreferences({ preferences, updatePreferences }: AppPreferencesProps) {
+  const {
+    isSupported: pushSupported,
+    permission: pushPermission,
+    isSubscribed: pushSubscribed,
+    isLoading: pushLoading,
+    requestPermission,
+    subscribe,
+    unsubscribe
+  } = useNotifications()
   return (
     <Card className="h-fit">
       <CardHeader className="pb-4">
@@ -111,6 +126,83 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
           </div>
           
           <div className="space-y-4">
+            {/* Notificaciones Push */}
+            <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1 flex-1">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Smartphone className="h-3 w-3" />
+                    Notificaciones Push
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Recibe notificaciones incluso cuando la app esté cerrada
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {pushSupported ? (
+                    <>
+                      {pushPermission === 'granted' ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : pushPermission === 'denied' ? (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Bell className="h-4 w-4 text-yellow-500" />
+                      )}
+                      <Badge variant={pushPermission === 'granted' ? 'default' : 'secondary'} className="text-xs">
+                        {pushPermission === 'granted' ? 'Permitido' : 
+                         pushPermission === 'denied' ? 'Denegado' : 'Pendiente'}
+                      </Badge>
+                    </>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">No soportado</Badge>
+                  )}
+                </div>
+              </div>
+              
+              {pushSupported && (
+                <div className="flex gap-2">
+                  {pushPermission !== 'granted' ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={requestPermission}
+                      disabled={pushLoading}
+                      className="text-xs"
+                    >
+                      {pushLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                      Permitir Notificaciones
+                    </Button>
+                  ) : (
+                    <>
+                      {!pushSubscribed ? (
+                        <Button
+                          size="sm"
+                          onClick={subscribe}
+                          disabled={pushLoading}
+                          className="text-xs"
+                        >
+                          {pushLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          Activar Push
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={unsubscribe}
+                          disabled={pushLoading}
+                          className="text-xs"
+                        >
+                          {pushLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          Desactivar Push
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Notificaciones en la app */}
             <div className="flex items-center justify-between">
               <div className="space-y-1 flex-1">
                 <Label className="text-sm font-medium">Notificaciones en la app</Label>
@@ -124,6 +216,7 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
               />
             </div>
 
+            {/* Notificaciones por email */}
             <div className="flex items-center justify-between">
               <div className="space-y-1 flex-1">
                 <Label className="text-sm font-medium flex items-center gap-2">
@@ -140,6 +233,7 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
               />
             </div>
 
+            {/* Alertas de presupuesto */}
             <div className="flex items-center justify-between">
               <div className="space-y-1 flex-1">
                 <Label className="text-sm font-medium flex items-center gap-2">

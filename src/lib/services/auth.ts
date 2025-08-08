@@ -66,10 +66,11 @@ export class AuthService {
   }
 
   static async signInWithGoogle() {
+    const { getSiteUrl } = await import('@/lib/supabase')
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`
+        redirectTo: `${getSiteUrl()}/dashboard`
       }
     })
     if (error) throw error

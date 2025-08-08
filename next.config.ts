@@ -84,6 +84,22 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['localhost', 'supabase.co'],
     formats: ['image/webp', 'image/avif']
+  },
+  webpack: (config) => {
+    // Exclude supabase functions from compilation
+    config.externals = config.externals || []
+    config.externals.push({
+      'supabase/functions': 'commonjs supabase/functions'
+    })
+    return config
+  },
+  // Exclude supabase directory from TypeScript checking
+  typescript: {
+    ignoreBuildErrors: false
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+    dirs: ['src', 'app'] // Only lint these directories
   }
 };
 

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { supabase } from "@/lib/supabase"
+import { supabase, getSiteUrl } from '@/lib/supabase'
 import { 
   ArrowLeft, 
   Wallet, 
@@ -62,7 +62,7 @@ export default function SignUpPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${getSiteUrl()}/dashboard`
         }
       })
       
