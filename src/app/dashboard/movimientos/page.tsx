@@ -29,18 +29,12 @@ import {
   Filter,
   Edit,
   Trash2,
-  Loader2
+  Loader2,
+  User,
+  Users
 } from "lucide-react"
 
-interface Movement {
-  id: string
-  amount: number
-  type: 'income' | 'expense'
-  description?: string
-  category_id?: string
-  movement_date: string
-  created_at: string
-}
+import type { Movement } from '@/lib/types'
 
 export default function MovimientosPage() {
   const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
@@ -75,6 +69,7 @@ export default function MovimientosPage() {
     movements, 
     loading: movementsLoading, 
     createMovement, 
+    createMovementAsync,
     updateMovement, 
     deleteMovement 
   } = useMovements(activeContext?.id, undefined, selectedYear, selectedMonth)
@@ -145,7 +140,8 @@ export default function MovimientosPage() {
     setIsSubmitting(true)
 
     try {
-      createMovement({
+      // Usar mutateAsync para esperar la respuesta
+      await createMovementAsync({
         amount: parseFloat(monto),
         type: tipo,
         description: description || undefined,
@@ -154,7 +150,7 @@ export default function MovimientosPage() {
         context_id: activeContext?.id
       })
 
-      // Reset form
+      // Reset form solo si la operación fue exitosa
       setMonto('')
       setDescription('')
       setCategoryId('')
@@ -520,6 +516,22 @@ export default function MovimientosPage() {
                               {formatDateForDisplay(movement.movement_date, true)} {/* true indica que viene de UTC */}
                             </div>
                           </div>
+                          {/* Información de auditoría */}
+                          <div className="flex items-center space-x-1 mt-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {movement.created_by_profile?.name || 'Usuario desconocido'}
+                            </span>
+                            {movement.updated_by && movement.updated_by !== movement.created_by && (
+                              <>
+                                <span className="text-xs text-muted-foreground">•</span>
+                                <Users className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Editado por {movement.updated_by_profile?.name || 'Usuario desconocido'}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 flex-shrink-0">
@@ -565,6 +577,25 @@ export default function MovimientosPage() {
             <DialogDescription>
               Modifica los detalles del movimiento
             </DialogDescription>
+            {/* Información de auditoría en el diálogo */}
+            {editingMovement && (
+              <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    Creado por: <span className="font-medium">{editingMovement.created_by_profile?.name || 'Usuario desconocido'}</span>
+                  </span>
+                </div>
+                {editingMovement.updated_by && editingMovement.updated_by !== editingMovement.created_by && (
+                  <div className="flex items-center space-x-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Última modificación: <span className="font-medium">{editingMovement.updated_by_profile?.name || 'Usuario desconocido'}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             {/* Tipo de Movimiento */}

@@ -18,7 +18,9 @@ import {
   Target,
   BarChart3,
   Loader2,
-  Calendar
+  Calendar,
+  User,
+  Users
 } from "lucide-react"
 import Link from "next/link"
 
@@ -330,6 +332,22 @@ export default function DashboardPage() {
                             <span className="text-xs text-muted-foreground">
                               {formatDate(movement.movement_date)}
                             </span>
+                          </div>
+                          {/* Información de auditoría */}
+                          <div className="flex items-center space-x-1 mt-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {movement.created_by_profile?.name || 'Usuario desconocido'}
+                            </span>
+                            {movement.updated_by && movement.updated_by !== movement.created_by && (
+                              <>
+                                <span className="text-xs text-muted-foreground">•</span>
+                                <Users className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Editado por {movement.updated_by_profile?.name || 'Usuario desconocido'}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

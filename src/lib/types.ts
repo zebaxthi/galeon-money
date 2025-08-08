@@ -60,11 +60,13 @@ export interface Movement {
   user_id: string
   context_id?: string
   created_by: string
+  updated_by?: string
   movement_date: string
   created_at: string
   updated_at: string
   category?: Category
   created_by_profile?: Profile
+  updated_by_profile?: Profile
 }
 
 export interface Budget {
@@ -91,6 +93,16 @@ export interface CreateMovementData {
   category_id?: string
   movement_date?: string
   context_id?: string
+}
+
+export interface UpdateMovementData {
+  amount?: number
+  type?: 'income' | 'expense'
+  description?: string
+  category_id?: string
+  movement_date?: string
+  context_id?: string
+  updated_by?: string
 }
 
 export interface CreateCategoryData {

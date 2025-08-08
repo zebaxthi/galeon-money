@@ -45,7 +45,7 @@ export function useMovements(contextId?: string, limit?: number, year?: number, 
 
   const updateMovementMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateMovementData> }) =>
-      MovementService.updateMovement(id, updates),
+      MovementService.updateMovement(id, updates, user?.id),
     onSuccess: invalidateMovementRelatedQueries,
   })
 
@@ -59,6 +59,7 @@ export function useMovements(contextId?: string, limit?: number, year?: number, 
     loading,
     error: error as Error | null,
     createMovement: createMovementMutation.mutate,
+    createMovementAsync: createMovementMutation.mutateAsync,
     updateMovement: updateMovementMutation.mutate,
     deleteMovement: deleteMovementMutation.mutate,
     isCreating: createMovementMutation.isPending,

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Movement, CreateMovementData } from '@/lib/types'
+import type { Movement, CreateMovementData, UpdateMovementData } from '@/lib/types'
 
 export class MovementService {
   static async getMovements(userId: string, contextId?: string, limit?: number): Promise<Movement[]> {
@@ -15,6 +15,11 @@ export class MovementService {
           icon
         ),
         created_by_profile:profiles!movements_created_by_fkey (
+          id,
+          name,
+          email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
           id,
           name,
           email
@@ -41,7 +46,8 @@ export class MovementService {
     return data?.map(movement => ({
       ...movement,
       category: movement.categories,
-      created_by_profile: movement.created_by_profile
+      created_by_profile: movement.created_by_profile,
+      updated_by_profile: movement.updated_by_profile
     })) || []
   }
 
@@ -58,6 +64,11 @@ export class MovementService {
           icon
         ),
         created_by_profile:profiles!movements_created_by_fkey (
+          id,
+          name,
+          email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
           id,
           name,
           email
@@ -81,7 +92,8 @@ export class MovementService {
     return data?.map(movement => ({
       ...movement,
       category: movement.categories,
-      created_by_profile: movement.created_by_profile
+      created_by_profile: movement.created_by_profile,
+      updated_by_profile: movement.updated_by_profile
     })) || []
   }
 
@@ -108,6 +120,11 @@ export class MovementService {
           id,
           name,
           email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
+          id,
+          name,
+          email
         )
       `)
       .single()
@@ -116,14 +133,20 @@ export class MovementService {
     return {
       ...data,
       category: data.categories,
-      created_by_profile: data.created_by_profile
+      created_by_profile: data.created_by_profile,
+      updated_by_profile: data.updated_by_profile
     }
   }
 
-  static async updateMovement(id: string, updates: Partial<CreateMovementData>): Promise<Movement> {
+  static async updateMovement(id: string, updates: UpdateMovementData, updatedBy?: string): Promise<Movement> {
+    const updateData = { ...updates }
+    if (updatedBy) {
+      updateData.updated_by = updatedBy
+    }
+    
     const { data, error } = await supabase
       .from('movements')
-      .update(updates)
+      .update(updateData)
       .eq('id', id)
       .select(`
         *,
@@ -138,6 +161,11 @@ export class MovementService {
           id,
           name,
           email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
+          id,
+          name,
+          email
         )
       `)
       .single()
@@ -146,7 +174,8 @@ export class MovementService {
     return {
       ...data,
       category: data.categories,
-      created_by_profile: data.created_by_profile
+      created_by_profile: data.created_by_profile,
+      updated_by_profile: data.updated_by_profile
     }
   }
 
