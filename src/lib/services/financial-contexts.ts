@@ -254,17 +254,37 @@ export class FinancialContextService {
       .eq('user_id', currentUserId)
       .order('joined_at', { ascending: false })
 
-    if (error) throw error
+    if (error) {
+      throw error
+    }
     
-    return data.map(item => {
-      const context = Array.isArray(item.financial_contexts) 
-        ? item.financial_contexts[0] 
-        : item.financial_contexts
-      return {
-        ...context,
-        user_role: item.role
+    const result: FinancialContext[] = []
+    
+    for (const item of data) {
+      const rawContext = item.financial_contexts
+      if (!rawContext) {
+        continue
       }
-    }) as FinancialContext[]
+      
+      // Si es un array, tomar el primer elemento
+      const context = Array.isArray(rawContext) ? rawContext[0] : rawContext
+      
+      if (!context || typeof context !== 'object') {
+        continue
+      }
+      
+      result.push({
+        id: context.id,
+        name: context.name,
+        description: context.description,
+        owner_id: context.owner_id,
+        created_at: context.created_at,
+        updated_at: context.updated_at,
+        user_role: item.role as 'owner' | 'member'
+      })
+    }
+
+    return result
   }
 
   static async setActiveContext(contextId: string) {

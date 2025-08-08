@@ -13,10 +13,15 @@ export function useFinancialContexts() {
     error: contextsError
   } = useQuery({
     queryKey: ['user-contexts', user?.id],
-    queryFn: () => FinancialContextService.getUserContexts(),
+    queryFn: async () => {
+      const result = await FinancialContextService.getUserContexts()
+      return result
+    },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutos
   })
+
+
 
   // Obtener el contexto activo actual
   const {
@@ -66,8 +71,39 @@ export function useFinancialContexts() {
   const setActiveContextMutation = useMutation({
     mutationFn: (contextId: string) => FinancialContextService.setActiveContext(contextId),
     onSuccess: () => {
+      // Invalidar ambas queries de contexto activo para sincronizar hooks
       queryClient.invalidateQueries({ queryKey: ['active-context', user?.id] })
-      queryClient.invalidateQueries({ queryKey: ['context-members'] })
+      queryClient.invalidateQueries({ queryKey: ['active-financial-context', user?.id] })
+      // Remover todas las queries de miembros del contexto para forzar nueva carga
+      queryClient.removeQueries({ 
+        queryKey: ['context-members'],
+        exact: false
+      })
+      // Remover también las queries de datos para que se carguen con el nuevo contexto
+      queryClient.removeQueries({ 
+        queryKey: ['movements', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['budgets', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['categories', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['statistics', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['movement-stats', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['budget-progress', user?.id],
+        exact: false
+      })
     }
   })
 
@@ -84,8 +120,8 @@ export function useFinancialContexts() {
   const inviteMemberMutation = useMutation({
     mutationFn: ({ contextId, email }: { contextId: string; email: string }) =>
       FinancialContextService.inviteMember({ context_id: contextId, email }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['context-members', variables.contextId] })
+    onSuccess: (_, { contextId }) => {
+      queryClient.invalidateQueries({ queryKey: ['context-members', contextId] })
     }
   })
 
@@ -93,8 +129,8 @@ export function useFinancialContexts() {
   const removeMemberMutation = useMutation({
     mutationFn: ({ contextId, userId }: { contextId: string; userId: string }) =>
       FinancialContextService.removeMember(contextId, userId),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['context-members', variables.contextId] })
+    onSuccess: (_, { contextId }) => {
+      queryClient.invalidateQueries({ queryKey: ['context-members', contextId] })
     }
   })
 
@@ -166,7 +202,33 @@ export function useFinancialContexts() {
     reload: () => {
       queryClient.invalidateQueries({ queryKey: ['user-contexts', user?.id] })
       queryClient.invalidateQueries({ queryKey: ['active-context', user?.id] })
-      queryClient.invalidateQueries({ queryKey: ['context-members'] })
+      queryClient.invalidateQueries({ queryKey: ['active-financial-context', user?.id] })
+      queryClient.removeQueries({ queryKey: ['context-members'] })
+      // Remover también las queries de datos para forzar nueva carga
+      queryClient.removeQueries({ 
+        queryKey: ['movements', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['budgets', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['categories', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['statistics', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['movement-stats', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['budget-progress', user?.id],
+        exact: false
+      })
     }
   }
 }

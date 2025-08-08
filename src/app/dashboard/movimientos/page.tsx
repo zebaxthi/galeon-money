@@ -253,9 +253,14 @@ export default function MovimientosPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold truncate">Movimientos</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            {isCurrentMonth ? 'Gestiona tus movimientos del mes actual' : `Movimientos de ${monthNames[selectedMonth]} ${selectedYear}`}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              {isCurrentMonth ? 'Gestiona tus movimientos del mes actual' : `Movimientos de ${monthNames[selectedMonth]} ${selectedYear}`} - {activeContext.name}
+            </p>
+            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+            </Badge>
+          </div>
         </div>
         
         {/* Selector de Mes y Año */}
@@ -566,8 +571,16 @@ export default function MovimientosPage() {
             <div className="space-y-2">
               <Label>Tipo de Movimiento</Label>
               <Tabs value={editTipo} onValueChange={(value) => {
-                setEditTipo(value as 'income' | 'expense')
-                setEditCategoryId('') // Reset category when type changes
+                const newType = value as 'income' | 'expense'
+                setEditTipo(newType)
+                
+                // Only reset category if current category is not compatible with new type
+                if (editCategoryId) {
+                  const currentCategory = categories.find(cat => cat.id === editCategoryId)
+                  if (currentCategory && currentCategory.type !== newType) {
+                    setEditCategoryId('')
+                  }
+                }
               }}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="income" className="text-green-600">

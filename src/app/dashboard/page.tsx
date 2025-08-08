@@ -102,9 +102,14 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold truncate">Dashboard</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Resumen de tu situación financiera - {activeContext.name}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Resumen de tu situación financiera - {activeContext.name}
+            </p>
+            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+            </Badge>
+          </div>
         </div>
         
         {/* Selector de Mes y Año */}

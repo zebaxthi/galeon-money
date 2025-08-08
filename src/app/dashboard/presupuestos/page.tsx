@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { 
   getCurrentBogotaDate, 
@@ -18,6 +19,7 @@ import {
   dateUTCToBogota, 
   formatDateForDisplay 
 } from '@/lib/utils'
+import type { Budget } from '@/lib/types'
 import { 
   Target, 
   DollarSign, 
@@ -29,7 +31,8 @@ import {
   Trash2,
   Search,
   Filter,
-  Wallet
+  Wallet,
+  Edit
 } from 'lucide-react'
 import Link from "next/link"
 
@@ -44,9 +47,11 @@ export default function PresupuestosPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'exceeded' | 'completed'>('all')
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
-  const { budgets, loading, createBudget, deleteBudget } = useBudgets(activeContext?.id)
+  const { budgets, loading, createBudget, updateBudget, deleteBudget, isUpdating } = useBudgets(activeContext?.id)
   const { budgetProgress, loading: progressLoading } = useBudgetProgress(activeContext?.id)
   const { categories, getCategoriesByType } = useCategories(activeContext?.id)
   const { toast } = useToast()
@@ -273,6 +278,36 @@ export default function PresupuestosPage() {
     }
   }
 
+  const handleEditBudget = (budget: Budget) => {
+    setEditingBudget(budget)
+    setIsEditModalOpen(true)
+  }
+
+  const handleUpdateBudget = async (budgetData: { name: string; amount: number; category_id: string; period: 'weekly' | 'monthly' | 'yearly'; start_date: string; end_date: string }) => {
+    if (!editingBudget) return
+
+    try {
+      await updateBudget({ id: editingBudget.id, updates: budgetData })
+      toast({
+        title: "Presupuesto actualizado",
+        description: `El presupuesto "${budgetData.name}" ha sido actualizado correctamente`,
+      })
+      setIsEditModalOpen(false)
+      setEditingBudget(null)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo actualizar el presupuesto. Inténtalo de nuevo.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false)
+    setEditingBudget(null)
+  }
+
   const getStatusBadge = (percentage: number) => {
     if (percentage <= 50) {
       return <Badge className="bg-green-600"><CheckCircle className="mr-1 h-3 w-3" />En Control</Badge>
@@ -301,9 +336,14 @@ export default function PresupuestosPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Presupuestos</h1>
-        <p className="text-muted-foreground">
-          Controla tus gastos estableciendo límites por categoría
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-muted-foreground">
+            Controla tus gastos estableciendo límites por categoría - {activeContext.name}
+          </p>
+          <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+            {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -435,6 +475,27 @@ export default function PresupuestosPage() {
           </CardContent>
         </Card>
 
+        {/* Modal de Edición */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Presupuesto</DialogTitle>
+              <DialogDescription>
+                Modifica los detalles del presupuesto seleccionado
+              </DialogDescription>
+            </DialogHeader>
+            {editingBudget && (
+              <EditBudgetForm
+                budget={editingBudget}
+                categories={expenseCategories}
+                onSubmit={handleUpdateBudget}
+                onCancel={handleCloseEditModal}
+                isSubmitting={isUpdating}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Lista de Presupuestos */}
         <div className="lg:col-span-2">
           <Card>
@@ -517,6 +578,13 @@ export default function PresupuestosPage() {
                             <Button 
                               variant="outline" 
                               size="sm"
+                              onClick={() => handleEditBudget(budget)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
                               onClick={() => handleDeleteBudget(budget.id, budget.name)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -548,5 +616,231 @@ export default function PresupuestosPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Componente para el formulario de edición
+interface EditBudgetFormProps {
+  budget: Budget
+  categories: Array<{ id: string; name: string; icon?: string }>
+  onSubmit: (data: { name: string; amount: number; category_id: string; period: 'weekly' | 'monthly' | 'yearly'; start_date: string; end_date: string }) => void
+  onCancel: () => void
+  isSubmitting: boolean
+}
+
+function EditBudgetForm({ budget, categories, onSubmit, onCancel, isSubmitting }: EditBudgetFormProps) {
+  const { toast } = useToast()
+  const [name, setName] = useState(budget.name)
+  const [amount, setAmount] = useState(budget.amount.toString())
+  const [categoryId, setCategoryId] = useState(budget.category_id)
+  const [period, setPeriod] = useState(budget.period)
+  const [startDate, setStartDate] = useState(dateUTCToBogota(budget.start_date).split('T')[0])
+  const [endDate, setEndDate] = useState(dateUTCToBogota(budget.end_date).split('T')[0])
+
+  const calculateEndDate = (start: string, selectedPeriod: string) => {
+    const startDate = new Date(start)
+    const endDate = new Date(startDate)
+    
+    switch (selectedPeriod) {
+      case 'weekly':
+        endDate.setDate(startDate.getDate() + 6)
+        break
+      case 'monthly':
+        endDate.setMonth(startDate.getMonth() + 1)
+        endDate.setDate(endDate.getDate() - 1)
+        break
+      case 'yearly':
+        endDate.setFullYear(startDate.getFullYear() + 1)
+        endDate.setDate(endDate.getDate() - 1)
+        break
+    }
+    
+    return endDate.toISOString().split('T')[0]
+  }
+
+  const handlePeriodChange = (newPeriod: string) => {
+    setPeriod(newPeriod as 'weekly' | 'monthly' | 'yearly')
+    if (startDate) {
+      const newEndDate = calculateEndDate(startDate, newPeriod)
+      setEndDate(newEndDate)
+    }
+  }
+
+  const handleStartDateChange = (newStartDate: string) => {
+    setStartDate(newStartDate)
+    const newEndDate = calculateEndDate(newStartDate, period)
+    setEndDate(newEndDate)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      toast({
+        title: "Error",
+        description: "El nombre del presupuesto es requerido",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      toast({
+        title: "Error",
+        description: "El monto debe ser mayor a 0",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!categoryId) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona una categoría",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!startDate || !endDate) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona las fechas del presupuesto",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (new Date(endDate) <= new Date(startDate)) {
+      toast({
+        title: "Error",
+        description: "La fecha de fin debe ser posterior a la fecha de inicio",
+        variant: "destructive"
+      })
+      return
+    }
+
+    onSubmit({
+      name: trimmedName,
+      amount: parseFloat(amount),
+      category_id: categoryId,
+      period: period as 'weekly' | 'monthly' | 'yearly',
+      start_date: dateInputToUTC(startDate),
+      end_date: dateInputToUTC(endDate)
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="edit-nombre">Nombre del Presupuesto</Label>
+        <div className="relative">
+          <Target className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="edit-nombre"
+            placeholder="Ej: Alimentación Enero"
+            className="pl-10"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={100}
+            required
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {name.length}/100 caracteres
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="edit-monto">Monto Límite</Label>
+        <div className="relative">
+          <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="edit-monto"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            className="pl-10"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="edit-categoria">Categoría</Label>
+        <Select value={categoryId} onValueChange={setCategoryId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecciona una categoría" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                <div className="flex items-center space-x-2">
+                  <span>{category.icon || '📁'}</span>
+                  <span>{category.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="edit-periodo">Período</Label>
+        <Select value={period} onValueChange={handlePeriodChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Mensual" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="weekly">Semanal</SelectItem>
+            <SelectItem value="monthly">Mensual</SelectItem>
+            <SelectItem value="yearly">Anual</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="edit-fechaInicio">Fecha Inicio</Label>
+          <Input
+            id="edit-fechaInicio"
+            type="date"
+            value={startDate}
+            onChange={(e) => handleStartDateChange(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="edit-fechaFin">Fecha Fin</Label>
+          <Input
+            id="edit-fechaFin"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Actualizando...
+            </>
+          ) : (
+            'Actualizar Presupuesto'
+          )}
+        </Button>
+      </div>
+    </form>
   )
 }

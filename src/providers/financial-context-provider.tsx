@@ -85,15 +85,53 @@ export function FinancialContextProvider({ children }: { children: React.ReactNo
   const setActiveContext = async (contextId: string) => {
     try {
       setError(null)
+      
+      // Limpiar localStorage antes de cambiar contexto
+      saveContextToStorage(null)
+      
+      // Cambiar contexto en el servidor
       await FinancialContextService.setActiveContext(contextId)
       
-      // Invalidar y refetch el contexto activo
-      await queryClient.invalidateQueries({ 
-        queryKey: ['active-financial-context', user?.id] 
+      // Remover todas las queries relacionadas con el contexto anterior del cache
+      queryClient.removeQueries({ 
+        queryKey: ['movements', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['budgets', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['categories', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['statistics', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['movement-stats', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['budget-progress', user?.id],
+        exact: false
+      })
+      queryClient.removeQueries({ 
+        queryKey: ['context-members'],
+        exact: false
       })
       
-      // Limpiar localStorage para forzar nueva carga
-      saveContextToStorage(null)
+      // Invalidar ambas queries de contexto activo para sincronizar hooks
+      await queryClient.invalidateQueries({ 
+        queryKey: ['active-financial-context', user?.id],
+        refetchType: 'active'
+      })
+      await queryClient.invalidateQueries({ 
+        queryKey: ['active-context', user?.id],
+        refetchType: 'active'
+      })
+      
     } catch (err) {
       setError(err as Error)
       throw err
@@ -105,6 +143,9 @@ export function FinancialContextProvider({ children }: { children: React.ReactNo
     saveContextToStorage(null)
     await queryClient.invalidateQueries({ 
       queryKey: ['active-financial-context', user?.id] 
+    })
+    await queryClient.invalidateQueries({ 
+      queryKey: ['active-context', user?.id] 
     })
   }
 

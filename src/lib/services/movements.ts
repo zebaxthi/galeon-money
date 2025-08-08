@@ -20,12 +20,15 @@ export class MovementService {
           email
         )
       `)
-      .eq('user_id', userId)
       .order('movement_date', { ascending: false })
       .order('created_at', { ascending: false })
 
+    // Si se proporciona contextId, filtrar por contexto y dejar que RLS maneje el acceso
     if (contextId) {
       query = query.eq('context_id', contextId)
+    } else {
+      // Solo filtrar por user_id si no hay contextId específico
+      query = query.eq('user_id', userId)
     }
 
     if (limit) {
@@ -60,13 +63,16 @@ export class MovementService {
           email
         )
       `)
-      .eq('user_id', userId)
       .gte('movement_date', startDate)
       .lte('movement_date', endDate)
       .order('movement_date', { ascending: false })
 
+    // Si se proporciona contextId, filtrar por contexto y dejar que RLS maneje el acceso
     if (contextId) {
       query = query.eq('context_id', contextId)
+    } else {
+      // Solo filtrar por user_id si no hay contextId específico
+      query = query.eq('user_id', userId)
     }
 
     const { data, error } = await query

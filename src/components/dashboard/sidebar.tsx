@@ -71,7 +71,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push('/auth')
+    router.push('/')
   }
 
   const getUserInitials = () => {

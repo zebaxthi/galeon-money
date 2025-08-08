@@ -15,12 +15,15 @@ export class BudgetService {
           icon
         )
       `)
-      .eq('user_id', userId)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
 
+    // Si se proporciona contextId, filtrar por contexto y dejar que RLS maneje el acceso
     if (contextId) {
       query = query.eq('context_id', contextId)
+    } else {
+      // Solo filtrar por user_id si no hay contextId específico
+      query = query.eq('user_id', userId)
     }
 
     const { data, error } = await query

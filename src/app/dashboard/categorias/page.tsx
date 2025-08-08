@@ -187,9 +187,14 @@ export default function CategoriasPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Categorías</h1>
-        <p className="text-muted-foreground">
-          Organiza tus movimientos con categorías personalizadas - {activeContext.name}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-muted-foreground">
+            Organiza tus movimientos con categorías personalizadas - {activeContext.name}
+          </p>
+          <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+            {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
