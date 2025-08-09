@@ -1,29 +1,9 @@
 import { supabase } from './supabase'
+import type { NotificationPayload, NotificationAction, ExtendedNotificationOptions } from './types'
 
 // VAPID keys for push notifications
 // These are example keys - in production, generate your own VAPID keys
 const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f8HtLlVLOPOHmgXblxitjyS-m5uLKwz-0aPDkHtfQBocsSiS7LI'
-
-interface NotificationPayload {
-  title: string
-  body: string
-  icon?: string
-  badge?: string
-  tag?: string
-  data?: Record<string, unknown>
-  actions?: NotificationAction[]
-}
-
-interface NotificationAction {
-  action: string
-  title: string
-  icon?: string
-}
-
-interface ExtendedNotificationOptions extends NotificationOptions {
-  actions?: NotificationAction[]
-  vibrate?: number[]
-}
 
 class NotificationService {
   private static instance: NotificationService
@@ -171,7 +151,6 @@ class NotificationService {
         tag: payload.tag,
         data: payload.data,
         requireInteraction: true,
-        vibrate: [200, 100, 200],
         actions: payload.actions
       }
       

@@ -3,13 +3,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { AuthService } from '@/lib/services/auth'
 import { FinancialContextService } from '@/lib/services/financial-contexts'
 
-interface UserPreferences {
-  currency: string
-  language: string
-  notifications: boolean
-  emailNotifications: boolean
-  budgetAlerts: boolean
-}
+import type { UserPreferences } from '@/lib/types'
 
 export function useSettings() {
   const { user } = useAuth()
@@ -52,12 +46,41 @@ export function useSettings() {
   })
 
   // Derived preferences
+  const notificationsPrefs = profile?.preferences?.notifications
+  
+  interface NotificationSettings {
+    email?: boolean
+    push?: boolean
+    budgetAlerts?: boolean
+    weeklyReports?: boolean
+    monthlyReports?: boolean
+  }
+  
+  // Obtener las preferencias de notificaciones
+  let parsedNotifications: NotificationSettings | null = null
+  
+  // Intentar parsear las notificaciones si están en formato JSON string
+  if (typeof notificationsPrefs === 'string') {
+    try {
+      parsedNotifications = JSON.parse(notificationsPrefs)
+    } catch {
+      // Si falla el parsing, usar valores por defecto
+      parsedNotifications = null
+    }
+  } else if (notificationsPrefs && typeof notificationsPrefs === 'object' && !Array.isArray(notificationsPrefs)) {
+    parsedNotifications = notificationsPrefs as NotificationSettings
+  }
+  
   const preferences: UserPreferences = {
     currency: 'COP', // Fijo en COP
     language: 'es', // Fijo en español
-    notifications: profile?.preferences?.notifications !== false,
-    emailNotifications: profile?.preferences?.emailNotifications !== false,
-    budgetAlerts: profile?.preferences?.budgetAlerts !== false
+    notifications: {
+      email: parsedNotifications?.email !== false,
+      push: parsedNotifications?.push !== false,
+      budgetAlerts: parsedNotifications?.budgetAlerts !== false,
+      weeklyReports: parsedNotifications?.weeklyReports !== false,
+      monthlyReports: parsedNotifications?.monthlyReports !== false
+    }
   }
 
   // Update profile mutation
@@ -73,11 +96,23 @@ export function useSettings() {
     mutationFn: async (newPreferences: Partial<UserPreferences>) => {
       if (!profile) throw new Error('No profile loaded')
       
-      return AuthService.updateProfile({
-        preferences: {
-          ...profile.preferences,
-          ...newPreferences
+      // Convertir las preferencias a un formato compatible con Record<string, string | number | boolean | null>
+      const flatPreferences: Record<string, string | number | boolean | null> = {
+        ...profile.preferences
+      }
+      
+      // Procesar cada preferencia
+      Object.entries(newPreferences).forEach(([key, value]) => {
+        if (key === 'notifications' && typeof value === 'object' && value !== null) {
+          // Serializar el objeto notifications como JSON
+          flatPreferences[key] = JSON.stringify(value)
+        } else {
+          flatPreferences[key] = value as string | number | boolean | null
         }
+      })
+      
+      return AuthService.updateProfile({
+        preferences: flatPreferences
       })
     },
     onSuccess: () => {

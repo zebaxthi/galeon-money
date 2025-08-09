@@ -1,34 +1,7 @@
 import { MovementService } from './movements'
 import { CategoryService } from './categories'
 import { BudgetService } from './budgets'
-import type { Movement, Category, Budget } from '@/lib/types'
-
-export interface ExportData {
-  movements: Movement[]
-  categories: Category[]
-  budgets: Budget[]
-  summary: CategorySummary[]
-  statistics: ExportStatistics
-}
-
-export interface CategorySummary {
-  categoria: string
-  ingresos: number
-  egresos: number
-  saldo: number
-  color?: string
-}
-
-export interface ExportStatistics {
-  totalIngresos: number
-  totalEgresos: number
-  saldoNeto: number
-  promedioMensual: number
-  movimientosCount: number
-  categoriasCount: number
-  presupuestosCount: number
-  periodoAnalizado: string
-}
+import type { Movement, Category, Budget, ExportData, CategorySummary, ExportStatistics } from '../types'
 
 export class ExportService {
   static async getExportData(

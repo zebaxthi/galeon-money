@@ -1,11 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 
-export interface Toast {
-  id: string
-  title?: string
-  description?: string
-  variant?: 'default' | 'destructive'
-}
+import type { Toast } from '@/lib/types'
 
 const toasts: Toast[] = []
 const listeners: Array<(toasts: Toast[]) => void> = []

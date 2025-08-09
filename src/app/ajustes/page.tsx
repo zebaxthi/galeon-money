@@ -8,7 +8,9 @@ import { FinancialContextsSettings } from '@/components/dashboard/financial-cont
 import { AppPreferences } from '@/components/dashboard/app-preferences'
 import { AccountSecurity } from '@/components/dashboard/account-security'
 import { useSettings } from '@/hooks/useSettings'
-import { Loader2, User, Folder, Settings, Shield } from 'lucide-react'
+import { PerformanceMonitor } from '@/components/dashboard/performance-monitor'
+import { QueryPerformanceMonitor } from '@/components/dashboard/query-performance-monitor'
+import { Loader2, User, Folder, Settings, Shield, Gauge } from 'lucide-react'
 
 export default function AjustesPage() {
   const { 
@@ -65,7 +67,7 @@ export default function AjustesPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               {/* Tabs List - Mejorado para móviles */}
               <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 mb-6">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
                   <TabsTrigger 
                     value="profile" 
                     className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -93,6 +95,13 @@ export default function AjustesPage() {
                   >
                     <Shield className="h-4 w-4" />
                     <span className="hidden sm:inline">Seguridad</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="performance" 
+                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    <Gauge className="h-4 w-4" />
+                    <span className="hidden sm:inline">Rendimiento</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -135,6 +144,20 @@ export default function AjustesPage() {
                     signOut={signOut}
                     deleteAccount={deleteAccount}
                   />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="performance" className="mt-0">
+                <div className="max-w-4xl space-y-8">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Métricas Web Vitals</h3>
+                    <PerformanceMonitor showDetails={true} />
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Rendimiento de Base de Datos</h3>
+                    <QueryPerformanceMonitor showDetails={true} />
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>

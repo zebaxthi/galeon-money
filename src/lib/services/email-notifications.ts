@@ -1,18 +1,6 @@
 import { supabase } from '../supabase'
 
-export interface EmailNotificationData {
-  to: string
-  subject: string
-  html: string
-  type: 'budget_exceeded' | 'budget_low' | 'monthly_report' | 'weekly_summary' | 'expense_alert'
-  userId: string
-  contextId?: string
-}
-
-export interface EmailTemplate {
-  subject: string
-  html: string
-}
+import type { EmailNotificationData, EmailTemplate } from '../types'
 
 export class EmailNotificationService {
   private static instance: EmailNotificationService

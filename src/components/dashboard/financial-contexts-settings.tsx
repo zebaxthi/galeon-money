@@ -48,7 +48,7 @@ export function FinancialContextsSettings() {
     isRemoving
   } = useFinancialContexts()
   
-  const { activeContext, setActiveContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, setActiveContext, loading: contextLoading } = useActiveFinancialContext()
 
 
 

@@ -24,7 +24,7 @@ import { useStatistics } from '@/hooks/useStatistics'
 import { useActiveFinancialContext } from '@/providers/financial-context-provider'
 
 export default function EstadisticasPage() {
-  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, loading: contextLoading } = useActiveFinancialContext()
   const [periodo, setPeriodo] = useState<'month' | 'year'>('month')
   const { data, loading, error } = useStatistics(periodo, activeContext?.id)
 

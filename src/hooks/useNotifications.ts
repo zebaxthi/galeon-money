@@ -2,24 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { notificationService } from '@/lib/notifications'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from './useSettings'
-
-interface UseNotificationsReturn {
-  // Estados
-  isSupported: boolean
-  permission: NotificationPermission
-  isSubscribed: boolean
-  isLoading: boolean
-  
-  // Acciones
-  requestPermission: () => Promise<boolean>
-  subscribe: () => Promise<boolean>
-  unsubscribe: () => Promise<boolean>
-  
-  // Notificaciones específicas
-  notifyBudgetExceeded: (categoryName: string, amount: number, budgetAmount: number) => Promise<void>
-  notifyLowBudget: (categoryName: string, remaining: number) => Promise<void>
-  notifyMonthlyReport: (totalIncome: number, totalExpenses: number) => Promise<void>
-}
+import type { UseNotificationsReturn } from '@/lib/types'
 
 export function useNotifications(): UseNotificationsReturn {
   const { user } = useAuth()

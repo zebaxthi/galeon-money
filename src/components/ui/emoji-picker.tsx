@@ -7,11 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Smile } from "lucide-react"
 
-interface EmojiPickerProps {
-  value: string
-  onChange: (emoji: string) => void
-  className?: string
-}
+import type { EmojiPickerProps } from '@/lib/types'
 
 export function EmojiPicker({ value, onChange, className }: EmojiPickerProps) {
   const [customEmoji, setCustomEmoji] = useState("")

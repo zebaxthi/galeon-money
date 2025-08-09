@@ -1,13 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { FinancialContext, ContextMember, UpdateFinancialContextData, InviteMemberData } from '@/lib/types'
 
-// Interfaz temporal para manejar la respuesta de Supabase
-interface SupabaseContextResponse {
-  context_id: string
-  role: 'owner' | 'member'
-  financial_contexts: FinancialContext | FinancialContext[]
-}
-
 export class FinancialContextService {
   static async getCurrentContext(userId?: string): Promise<FinancialContext | null> {
     let currentUserId = userId
@@ -39,13 +32,12 @@ export class FinancialContextService {
         .single()
 
       if (!contextError && contextData && contextData.financial_contexts) {
-        const typedData = contextData as SupabaseContextResponse
-        const context = Array.isArray(typedData.financial_contexts) 
-          ? typedData.financial_contexts[0] 
-          : typedData.financial_contexts
+        const context = Array.isArray(contextData.financial_contexts) 
+          ? contextData.financial_contexts[0] 
+          : contextData.financial_contexts
         return {
           ...context,
-          user_role: typedData.role
+          user_role: contextData.role
         } as FinancialContext
       }
     }
@@ -71,13 +63,12 @@ export class FinancialContextService {
     // Establecer este como el contexto activo
     if (data && data.financial_contexts) {
       await this.setActiveContext(data.context_id)
-      const typedData = data as SupabaseContextResponse
-      const context = Array.isArray(typedData.financial_contexts) 
-        ? typedData.financial_contexts[0] 
-        : typedData.financial_contexts
+      const context = Array.isArray(data.financial_contexts) 
+        ? data.financial_contexts[0] 
+        : data.financial_contexts
       return {
         ...context,
-        user_role: typedData.role
+        user_role: data.role
       } as FinancialContext
     }
 

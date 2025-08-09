@@ -2,6 +2,7 @@ import { Sidebar } from '@/components/dashboard/sidebar'
 import { BottomNavigation } from '@/components/dashboard/bottom-navigation'
 import { AuthGuard } from '@/components/auth/auth-guard'
 import { FinancialContextProvider } from '@/providers/financial-context-provider'
+import { LazyPageWrapper } from '@/components/layouts/lazy-page-wrapper'
 
 export default function DashboardLayout({
   children,
@@ -22,7 +23,9 @@ export default function DashboardLayout({
             <main className="flex-1 overflow-y-auto overscroll-contain">
               <div className="min-h-full p-4 pb-20 md:pb-4">
                 <div className="max-w-full">
-                  {children}
+                  <LazyPageWrapper>
+                    {children}
+                  </LazyPageWrapper>
                 </div>
               </div>
             </main>

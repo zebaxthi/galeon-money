@@ -19,19 +19,11 @@ import {
   Smartphone,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  Calendar
 } from 'lucide-react'
 
-interface UserPreferences {
-  notifications?: boolean
-  emailNotifications?: boolean
-  budgetAlerts?: boolean
-}
-
-interface AppPreferencesProps {
-  preferences: UserPreferences
-  updatePreferences: (updates: Partial<UserPreferences>) => Promise<void>
-}
+import type { AppPreferencesProps } from '@/lib/types'
 
 export function AppPreferences({ preferences, updatePreferences }: AppPreferencesProps) {
   const {
@@ -202,20 +194,6 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
               )}
             </div>
 
-            {/* Notificaciones en la app */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 flex-1">
-                <Label className="text-sm font-medium">Notificaciones en la app</Label>
-                <p className="text-xs text-muted-foreground">
-                  Recibe notificaciones dentro de la aplicación
-                </p>
-              </div>
-              <Switch
-                checked={preferences?.notifications !== false}
-                onCheckedChange={(checked) => updatePreferences({ notifications: checked })}
-              />
-            </div>
-
             {/* Notificaciones por email */}
             <div className="flex items-center justify-between">
               <div className="space-y-1 flex-1">
@@ -228,8 +206,13 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
                 </p>
               </div>
               <Switch
-                checked={preferences?.emailNotifications !== false}
-                onCheckedChange={(checked) => updatePreferences({ emailNotifications: checked })}
+                checked={preferences?.notifications?.email !== false}
+                onCheckedChange={(checked) => updatePreferences({ 
+                  notifications: { 
+                    ...preferences?.notifications, 
+                    email: checked 
+                  } 
+                })}
               />
             </div>
 
@@ -245,8 +228,35 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
                 </p>
               </div>
               <Switch
-                checked={preferences?.budgetAlerts !== false}
-                onCheckedChange={(checked) => updatePreferences({ budgetAlerts: checked })}
+                checked={preferences?.notifications?.budgetAlerts !== false}
+                onCheckedChange={(checked) => updatePreferences({ 
+                  notifications: { 
+                    ...preferences?.notifications, 
+                    budgetAlerts: checked 
+                  } 
+                })}
+              />
+            </div>
+
+            {/* Reportes semanales */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-1 flex-1">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="h-3 w-3" />
+                  Reportes semanales
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Recibe un resumen semanal de tus finanzas
+                </p>
+              </div>
+              <Switch
+                checked={preferences?.notifications?.weeklyReports !== false}
+                onCheckedChange={(checked) => updatePreferences({ 
+                  notifications: { 
+                    ...preferences?.notifications, 
+                    weeklyReports: checked 
+                  } 
+                })}
               />
             </div>
           </div>

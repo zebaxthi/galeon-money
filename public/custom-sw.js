@@ -65,13 +65,13 @@ self.addEventListener('notificationclick', (event) => {
     switch (event.notification.data.type) {
       case 'budget_exceeded':
       case 'budget_low':
-        urlToOpen = '/dashboard/presupuestos'
+        urlToOpen = '/presupuestos'
         break
       case 'monthly_report':
-        urlToOpen = '/dashboard/estadisticas'
+        urlToOpen = '/estadisticas'
         break
       case 'new_movement':
-        urlToOpen = '/dashboard/movimientos'
+        urlToOpen = '/movimientos'
         break
       default:
         urlToOpen = '/dashboard'

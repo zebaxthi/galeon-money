@@ -1,60 +1,72 @@
 'use client'
 
+// React hooks
 import { useState, useEffect } from 'react'
-import { useBudgets, useBudgetProgress } from '@/hooks/useBudgets'
-import { useCategories } from '@/hooks/useCategories'
-import { useActiveFinancialContext } from '@/providers/financial-context-provider'
+
+// Next.js components
+import Link from "next/link"
+
+// UI Components
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useToast } from '@/hooks/use-toast'
-import { 
-  getCurrentBogotaDate, 
-  dateInputToUTC, 
-  dateUTCToBogota, 
-  formatDateForDisplay 
-} from '@/lib/utils'
-import type { Budget } from '@/lib/types'
-import { 
-  Target, 
-  DollarSign, 
-  TrendingUp, 
-  AlertTriangle, 
-  CheckCircle, 
-  Loader2, 
-  Plus,
-  Trash2,
-  Search,
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Custom hooks
+import { useBudgets, useBudgetProgress } from '@/hooks/useBudgets'
+import { useCategories } from '@/hooks/useCategories'
+
+// Providers
+import { useActiveFinancialContext } from '@/providers/financial-context-provider'
+
+// Utilities
+import { formatCurrency, formatDate } from '@/lib/formatters'
+import { useStandardToast } from "@/lib/toast-utils"
+import { getCurrentBogotaDate, dateInputToUTC, dateUTCToBogota } from '@/lib/utils'
+import { isNotEmpty, isPositiveNumber, isEndDateAfterStartDate, VALIDATION_MESSAGES } from '@/lib/validation-utils'
+
+// Icons
+import {
+  AlertTriangle,
+  CheckCircle,
+  DollarSign,
+  Edit,
   Filter,
-  Wallet,
-  Edit
+  Loader2,
+  Plus,
+  Search,
+  Target,
+  Trash2,
+  TrendingUp,
+  Wallet
 } from 'lucide-react'
-import Link from "next/link"
+
+// Types
+import type { Budget } from '@/lib/types'
 
 export default function PresupuestosPage() {
   // Todos los hooks deben ir al principio, antes de cualquier return
-  const [nombrePresupuesto, setNombrePresupuesto] = useState('')
-  const [montoPresupuesto, setMontoPresupuesto] = useState('')
-  const [categoriaPresupuesto, setCategoriaPresupuesto] = useState('')
-  const [periodoPresupuesto, setPeriodoPresupuesto] = useState('monthly')
-  const [fechaInicio, setFechaInicio] = useState(getCurrentBogotaDate())
-  const [fechaFin, setFechaFin] = useState('')
+  const [budgetName, setBudgetName] = useState('')
+  const [budgetAmount, setBudgetAmount] = useState('')
+  const [budgetCategoryId, setBudgetCategoryId] = useState('')
+  const [budgetPeriod, setBudgetPeriod] = useState('monthly')
+  const [startDate, setStartDate] = useState(getCurrentBogotaDate())
+  const [endDate, setEndDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'exceeded' | 'completed'>('all')
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, loading: contextLoading } = useActiveFinancialContext()
   const { budgets, loading, createBudget, updateBudget, deleteBudget, isUpdating } = useBudgets(activeContext?.id)
   const { budgetProgress, loading: progressLoading } = useBudgetProgress(activeContext?.id)
   const { categories, getCategoriesByType } = useCategories(activeContext?.id)
-  const { toast } = useToast()
+  const { showError, showOperationSuccess, showOperationError } = useStandardToast()
 
   // Calcular fecha de fin automática
   const calculateEndDate = (startDate: string, period: string) => {
@@ -80,11 +92,11 @@ export default function PresupuestosPage() {
 
   // useEffect debe ir después de todos los otros hooks pero antes de los returns
   useEffect(() => {
-    if (fechaInicio) {
-      const newEndDate = calculateEndDate(fechaInicio, periodoPresupuesto)
-      setFechaFin(newEndDate)
+    if (startDate) {
+      const newEndDate = calculateEndDate(startDate, budgetPeriod)
+      setEndDate(newEndDate)
     }
-  }, [fechaInicio, periodoPresupuesto])
+  }, [startDate, budgetPeriod])
 
   const expenseCategories = getCategoriesByType('expense')
 
@@ -110,7 +122,7 @@ export default function PresupuestosPage() {
             Necesitas crear o seleccionar un contexto financiero para gestionar presupuestos.
           </p>
           <Button asChild>
-            <Link href="/dashboard/ajustes">
+            <Link href="/ajustes">
               Ir a Configuración
             </Link>
           </Button>
@@ -146,113 +158,89 @@ export default function PresupuestosPage() {
   })
 
   const handlePeriodChange = (period: string) => {
-    setPeriodoPresupuesto(period)
+    setBudgetPeriod(period)
   }
 
   const handleStartDateChange = (date: string) => {
-    setFechaInicio(date)
+    setStartDate(date)
+  }
+
+  // Función para validar los datos del presupuesto
+  const validateBudgetForm = (): { isValid: boolean; error?: string; trimmedName?: string } => {
+    const trimmedName = budgetName.trim()
+    
+    if (!isNotEmpty(budgetName)) {
+      return { isValid: false, error: VALIDATION_MESSAGES.REQUIRED }
+    }
+
+    if (trimmedName.length < 2) {
+      return { isValid: false, error: VALIDATION_MESSAGES.MIN_LENGTH(2) }
+    }
+
+    if (trimmedName.length > 100) {
+      return { isValid: false, error: "El nombre no puede exceder 100 caracteres" }
+    }
+
+    if (!isPositiveNumber(budgetAmount)) {
+      return { isValid: false, error: VALIDATION_MESSAGES.POSITIVE_NUMBER }
+    }
+
+    if (!budgetCategoryId) {
+      return { isValid: false, error: "Por favor selecciona una categoría" }
+    }
+
+    if (!startDate || !endDate) {
+      return { isValid: false, error: "Por favor selecciona las fechas del presupuesto" }
+    }
+
+    if (!isEndDateAfterStartDate(startDate, endDate)) {
+      return { isValid: false, error: VALIDATION_MESSAGES.END_AFTER_START }
+    }
+
+    return { isValid: true, trimmedName }
+  }
+
+  // Función para resetear el formulario de presupuesto
+  const resetBudgetForm = () => {
+    setBudgetName('')
+    setBudgetAmount('')
+    setBudgetCategoryId('')
+    setBudgetPeriod('monthly')
+    setStartDate(getCurrentBogotaDate())
+    setEndDate('')
+  }
+
+  // Función para crear el presupuesto
+  const createBudgetWithData = async (trimmedName: string) => {
+    await createBudget({
+      name: trimmedName,
+      amount: parseFloat(budgetAmount),
+      category_id: budgetCategoryId,
+      period: budgetPeriod as 'weekly' | 'monthly' | 'yearly',
+      start_date: dateInputToUTC(startDate), // Convertir a UTC
+      end_date: dateInputToUTC(endDate), // Convertir a UTC
+      context_id: activeContext?.id
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validaciones del frontend
-    const trimmedName = nombrePresupuesto.trim()
-    
-    if (!trimmedName) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa un nombre para el presupuesto",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (trimmedName.length < 2) {
-      toast({
-        title: "Error",
-        description: "El nombre debe tener al menos 2 caracteres",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (trimmedName.length > 100) {
-      toast({
-        title: "Error",
-        description: "El nombre no puede exceder 100 caracteres",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (!montoPresupuesto || parseFloat(montoPresupuesto) <= 0) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa un monto válido mayor a 0",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (!categoriaPresupuesto) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona una categoría",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (!fechaInicio || !fechaFin) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona las fechas del presupuesto",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (new Date(fechaFin) <= new Date(fechaInicio)) {
-      toast({
-        title: "Error",
-        description: "La fecha de fin debe ser posterior a la fecha de inicio",
-        variant: "destructive"
-      })
+    const validation = validateBudgetForm()
+    if (!validation.isValid) {
+      showError(validation.error!, "Error de validación")
       return
     }
 
     setIsSubmitting(true)
     
     try {
-      await createBudget({
-        name: trimmedName,
-        amount: parseFloat(montoPresupuesto),
-        category_id: categoriaPresupuesto,
-        period: periodoPresupuesto as 'weekly' | 'monthly' | 'yearly',
-        start_date: dateInputToUTC(fechaInicio), // Convertir a UTC
-        end_date: dateInputToUTC(fechaFin), // Convertir a UTC
-        context_id: activeContext?.id
-      })
-
-      // Reset form
-      setNombrePresupuesto('')
-      setMontoPresupuesto('')
-      setCategoriaPresupuesto('')
-      setPeriodoPresupuesto('monthly')
-      setFechaInicio(getCurrentBogotaDate())
-      setFechaFin('')
+      await createBudgetWithData(validation.trimmedName!)
+      resetBudgetForm()
       
-      toast({
-        title: "Presupuesto creado",
-        description: `Presupuesto "${trimmedName}" creado exitosamente.`
-      })
+      showOperationSuccess("crear", "Presupuesto")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo crear el presupuesto. Inténtalo de nuevo.",
-        variant: "destructive"
-      })
+      showOperationError("crear", "presupuesto", error instanceof Error ? error.message : undefined)
     } finally {
       setIsSubmitting(false)
     }
@@ -265,16 +253,9 @@ export default function PresupuestosPage() {
 
     try {
       await deleteBudget(id)
-      toast({
-        title: "Presupuesto eliminado",
-        description: `El presupuesto "${name}" ha sido eliminado correctamente`,
-      })
+      showOperationSuccess("eliminar", "Presupuesto")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo eliminar el presupuesto. Inténtalo de nuevo.",
-        variant: "destructive"
-      })
+      showOperationError("eliminar", "presupuesto", error instanceof Error ? error.message : undefined)
     }
   }
 
@@ -288,18 +269,11 @@ export default function PresupuestosPage() {
 
     try {
       await updateBudget({ id: editingBudget.id, updates: budgetData })
-      toast({
-        title: "Presupuesto actualizado",
-        description: `El presupuesto "${budgetData.name}" ha sido actualizado correctamente`,
-      })
+      showOperationSuccess("actualizar", "Presupuesto")
       setIsEditModalOpen(false)
       setEditingBudget(null)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo actualizar el presupuesto. Inténtalo de nuevo.",
-        variant: "destructive"
-      })
+      showOperationError("actualizar", "presupuesto", error instanceof Error ? error.message : undefined)
     }
   }
 
@@ -320,17 +294,7 @@ export default function PresupuestosPage() {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return formatDateForDisplay(dateUTCToBogota(dateString), true)
-  }
+  // Funciones de formateo movidas a @/lib/formatters
 
   return (
     <div className="space-y-6">
@@ -358,36 +322,36 @@ export default function PresupuestosPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="nombre">Nombre del Presupuesto</Label>
+                <Label htmlFor="budgetName">Nombre del Presupuesto</Label>
                 <div className="relative">
                   <Target className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="nombre"
+                    id="budgetName"
                     placeholder="Ej: Alimentación Enero"
                     className="pl-10"
-                    value={nombrePresupuesto}
-                    onChange={(e) => setNombrePresupuesto(e.target.value)}
+                    value={budgetName}
+                    onChange={(e) => setBudgetName(e.target.value)}
                     maxLength={100}
                     required
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {nombrePresupuesto.length}/100 caracteres
+                  {budgetName.length}/100 caracteres
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="monto">Monto Límite</Label>
+                <Label htmlFor="budgetAmount">Monto Límite</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="monto"
+                    id="budgetAmount"
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     className="pl-10"
-                    value={montoPresupuesto}
-                    onChange={(e) => setMontoPresupuesto(e.target.value)}
+                    value={budgetAmount}
+                    onChange={(e) => setBudgetAmount(e.target.value)}
                     required
                   />
                 </div>
@@ -395,7 +359,7 @@ export default function PresupuestosPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría</Label>
-                <Select value={categoriaPresupuesto} onValueChange={setCategoriaPresupuesto}>
+                <Select value={budgetCategoryId} onValueChange={setBudgetCategoryId}>
                   <SelectTrigger>
                     <SelectValue placeholder={
                       expenseCategories.length === 0
@@ -420,7 +384,7 @@ export default function PresupuestosPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="periodo">Período</Label>
-                <Select value={periodoPresupuesto} onValueChange={handlePeriodChange}>
+                <Select value={budgetPeriod} onValueChange={handlePeriodChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Mensual" />
                   </SelectTrigger>
@@ -435,11 +399,11 @@ export default function PresupuestosPage() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Fecha Inicio */}
                 <div className="space-y-2">
-                  <Label htmlFor="fechaInicio">Fecha Inicio</Label>
+                  <Label htmlFor="startDate">Fecha Inicio</Label>
                   <Input
-                    id="fechaInicio"
+                    id="startDate"
                     type="date"
-                    value={fechaInicio}
+                    value={startDate}
                     onChange={(e) => handleStartDateChange(e.target.value)}
                     required
                   />
@@ -447,12 +411,12 @@ export default function PresupuestosPage() {
 
                 {/* Fecha Fin */}
                 <div className="space-y-2">
-                  <Label htmlFor="fechaFin">Fecha Fin</Label>
+                  <Label htmlFor="endDate">Fecha Fin</Label>
                   <Input
-                    id="fechaFin"
+                    id="endDate"
                     type="date"
-                    value={fechaFin}
-                    onChange={(e) => setFechaFin(e.target.value)}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
                     required
                   />
                 </div>
@@ -629,7 +593,7 @@ interface EditBudgetFormProps {
 }
 
 function EditBudgetForm({ budget, categories, onSubmit, onCancel, isSubmitting }: EditBudgetFormProps) {
-  const { toast } = useToast()
+  const { showError } = useStandardToast()
   const [name, setName] = useState(budget.name)
   const [amount, setAmount] = useState(budget.amount.toString())
   const [categoryId, setCategoryId] = useState(budget.category_id)
@@ -675,51 +639,32 @@ function EditBudgetForm({ budget, categories, onSubmit, onCancel, isSubmitting }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    const trimmedName = name.trim()
-    if (!trimmedName) {
-      toast({
-        title: "Error",
-        description: "El nombre del presupuesto es requerido",
-        variant: "destructive"
-      })
-      return
-    }
+    if (!isNotEmpty(name)) {
+       showError(VALIDATION_MESSAGES.REQUIRED, "Error de validación")
+       return
+     }
+ 
+     if (!isPositiveNumber(amount)) {
+       showError(VALIDATION_MESSAGES.POSITIVE_NUMBER, "Error de validación")
+       return
+     }
+ 
+     if (!categoryId) {
+       showError("Por favor selecciona una categoría", "Error de validación")
+       return
+     }
+ 
+     if (!startDate || !endDate) {
+       showError("Por favor selecciona las fechas del presupuesto", "Error de validación")
+       return
+     }
+ 
+     if (!isEndDateAfterStartDate(startDate, endDate)) {
+       showError(VALIDATION_MESSAGES.END_AFTER_START, "Error de validación")
+       return
+     }
 
-    if (!amount || parseFloat(amount) <= 0) {
-      toast({
-        title: "Error",
-        description: "El monto debe ser mayor a 0",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (!categoryId) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona una categoría",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (!startDate || !endDate) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona las fechas del presupuesto",
-        variant: "destructive"
-      })
-      return
-    }
-
-    if (new Date(endDate) <= new Date(startDate)) {
-      toast({
-        title: "Error",
-        description: "La fecha de fin debe ser posterior a la fecha de inicio",
-        variant: "destructive"
-      })
-      return
-    }
+     const trimmedName = name.trim()
 
     onSubmit({
       name: trimmedName,
