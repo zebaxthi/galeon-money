@@ -22,17 +22,17 @@ const mainNavItems = [
   },
   {
     title: "Movimientos",
-    href: "/dashboard/movimientos",
+    href: "/movimientos",
     icon: Plus,
   },
   {
     title: "Presupuestos",
-    href: "/dashboard/presupuestos",
+    href: "/presupuestos",
     icon: Target,
   },
   {
     title: "Estadísticas",
-    href: "/dashboard/estadisticas",
+    href: "/estadisticas",
     icon: BarChart3,
   },
 ]

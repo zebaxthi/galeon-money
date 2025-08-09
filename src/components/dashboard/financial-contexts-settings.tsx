@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast'
 import { useFinancialContexts } from '@/hooks/useFinancialContexts'
 import { useActiveFinancialContext } from '@/providers/financial-context-provider'
+
 import { 
   Building2, 
   Plus, 
@@ -47,7 +48,9 @@ export function FinancialContextsSettings() {
     isRemoving
   } = useFinancialContexts()
   
-  const { activeContext, setActiveContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, setActiveContext, loading: contextLoading } = useActiveFinancialContext()
+
+
 
   // Estados para modales
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -257,16 +260,22 @@ export function FinancialContextsSettings() {
               <SelectValue placeholder={activeContext?.name} />
             </SelectTrigger>
             <SelectContent>
-              {userContexts.map((context) => (
-                <SelectItem key={context.id} value={context.id}>
-                  <div className="flex items-center gap-2">
-                    <span>{context.name}</span>
-                    {context.user_role === 'owner' && (
-                      <Crown className="h-3 w-3 text-yellow-500" />
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
+              {userContexts && userContexts.length > 0 ? (
+                userContexts.map((context) => (
+                  <SelectItem key={context.id} value={context.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{context.name}</span>
+                      {context.user_role === 'owner' && (
+                        <Crown key={`crown-${context.id}`} className="h-3 w-3 text-yellow-500" />
+                      )}
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                <div className="p-2 text-sm text-muted-foreground">
+                  {contextLoading ? 'Cargando contextos...' : 'No hay contextos disponibles'}
+                </div>
+              )}
             </SelectContent>
           </Select>
           {activeContext && (
@@ -516,7 +525,7 @@ export function FinancialContextsSettings() {
                             {member.profile?.name || member.profile?.email}
                           </span>
                           {member.role === 'owner' && (
-                            <Badge variant="secondary" className="gap-1">
+                            <Badge key={`badge-${member.id}`} variant="secondary" className="gap-1">
                               <Crown className="h-3 w-3" />
                               Propietario
                             </Badge>
@@ -577,6 +586,8 @@ export function FinancialContextsSettings() {
             )}
           </>
         )}
+        
+
       </CardContent>
     </Card>
   )

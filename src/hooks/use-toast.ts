@@ -1,11 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
-export interface Toast {
-  id: string
-  title?: string
-  description?: string
-  variant?: 'default' | 'destructive'
-}
+import type { Toast } from '@/lib/types'
 
 const toasts: Toast[] = []
 const listeners: Array<(toasts: Toast[]) => void> = []
@@ -51,7 +46,7 @@ export function useToast() {
   }, [])
 
   // Subscribe to toast changes
-  useState(() => {
+  useEffect(() => {
     listeners.push(setToastList)
     return () => {
       const index = listeners.indexOf(setToastList)
@@ -59,7 +54,7 @@ export function useToast() {
         listeners.splice(index, 1)
       }
     }
-  })
+  }, [])
 
   return {
     toast,

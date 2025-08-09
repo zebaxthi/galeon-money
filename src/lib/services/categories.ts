@@ -6,11 +6,14 @@ export class CategoryService {
     let query = supabase
       .from('categories')
       .select('*')
-      .eq('user_id', userId)
       .order('name', { ascending: true })
 
+    // Si se proporciona contextId, filtrar por contexto y dejar que RLS maneje el acceso
     if (contextId) {
       query = query.eq('context_id', contextId)
+    } else {
+      // Solo filtrar por user_id si no hay contextId específico
+      query = query.eq('user_id', userId)
     }
 
     const { data, error } = await query

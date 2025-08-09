@@ -1,59 +1,65 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+// React hooks
+import { useState, useMemo, useCallback } from "react"
+
+// UI Components
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useMovements } from "@/hooks/useMovements"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+// Loading components
+import { MovementsSkeleton } from "@/components/loading/movements-skeleton"
+
+// Custom hooks
 import { useCategories } from "@/hooks/useCategories"
+import { useMovements } from "@/hooks/useMovements"
+
+// Providers
 import { useActiveFinancialContext } from "@/providers/financial-context-provider"
-import { useToast } from "@/hooks/use-toast"
-import { 
-  getCurrentBogotaDate, 
-  dateInputToUTC, 
-  dateUTCToBogota, 
-  formatDateForDisplay
-} from "@/lib/utils"
-import { 
-  Plus, 
-  Minus, 
-  DollarSign, 
-  Calendar, 
-  FileText, 
-  Search, 
-  Filter,
+
+// Utilities
+import { formatAmount, formatDate } from "@/lib/formatters"
+import { useStandardToast } from "@/lib/toast-utils"
+import { getCurrentBogotaDate, dateInputToUTC, dateUTCToBogota } from "@/lib/utils"
+import { isPositiveNumber, VALIDATION_MESSAGES } from "@/lib/validation-utils"
+
+// Icons
+import {
+  Calendar,
+  DollarSign,
   Edit,
+  FileText,
+  Filter,
+  Loader2,
+  Minus,
+  Plus,
+  Search,
   Trash2,
-  Loader2
+  User,
+  Users
 } from "lucide-react"
 
-interface Movement {
-  id: string
-  amount: number
-  type: 'income' | 'expense'
-  description?: string
-  category_id?: string
-  movement_date: string
-  created_at: string
-}
+// Types
+import type { Movement } from '@/lib/types'
 
 export default function MovimientosPage() {
-  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
-  const currentDate = new Date()
+  const { activeContext, loading: contextLoading } = useActiveFinancialContext()
+  const currentDate = useMemo(() => new Date(), [])
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
 
   // Form states
-  const [tipo, setTipo] = useState<'income' | 'expense'>('expense')
-  const [monto, setMonto] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [fecha, setFecha] = useState(getCurrentBogotaDate())
-  const [description, setDescription] = useState('')
+  const [movementType, setMovementType] = useState<'income' | 'expense'>('expense')
+  const [amount, setAmount] = useState('')
+  const [selectedCategoryId, setSelectedCategoryId] = useState('')
+  const [movementDate, setMovementDate] = useState(getCurrentBogotaDate())
+  const [movementDescription, setMovementDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Filter states
@@ -64,33 +70,108 @@ export default function MovimientosPage() {
   // Edit states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingMovement, setEditingMovement] = useState<Movement | null>(null)
-  const [editTipo, setEditTipo] = useState<'income' | 'expense'>('expense')
-  const [editMonto, setEditMonto] = useState('')
-  const [editCategoryId, setEditCategoryId] = useState('')
-  const [editFecha, setEditFecha] = useState('')
-  const [editDescription, setEditDescription] = useState('')
+  const [editMovementType, setEditMovementType] = useState<'income' | 'expense'>('expense')
+  const [editAmount, setEditAmount] = useState('')
+  const [editSelectedCategoryId, setEditSelectedCategoryId] = useState('')
+  const [editMovementDate, setEditMovementDate] = useState('')
+  const [editMovementDescription, setEditMovementDescription] = useState('')
   const [isEditSubmitting, setIsEditSubmitting] = useState(false)
 
   const { 
     movements, 
     loading: movementsLoading, 
-    createMovement, 
+    createMovementAsync,
     updateMovement, 
     deleteMovement 
   } = useMovements(activeContext?.id, undefined, selectedYear, selectedMonth)
   const { categories, loading: categoriesLoading } = useCategories(activeContext?.id)
-  const { toast } = useToast()
+  const { showError, showOperationSuccess, showOperationError } = useStandardToast()
+
+  // Generar opciones de años (memoizado)
+  const yearOptions = useMemo(() => {
+    const options = []
+    for (let i = currentDate.getFullYear() - 3; i <= currentDate.getFullYear() + 1; i++) {
+      options.push(i)
+    }
+    return options
+  }, [currentDate])
+
+  // Nombres de meses (memoizado)
+  const monthNames = useMemo(() => [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ], [])
+
+  // Verificar si es el mes actual (memoizado)
+  const isCurrentMonth = useMemo(() => 
+    selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth(),
+    [selectedYear, selectedMonth, currentDate]
+  )
+
+  // Filter categories based on movement type (memoizado)
+  const availableCategories = useMemo(() => 
+    categories.filter(cat => cat.type === movementType),
+    [categories, movementType]
+  )
+  
+  const editAvailableCategories = useMemo(() => 
+    categories.filter(cat => cat.type === editMovementType),
+    [categories, editMovementType]
+  )
+
+  // Filter movements (memoizado)
+  const filteredMovements = useMemo(() => {
+    return movements.filter(movement => {
+      const matchesSearch = !searchTerm || 
+        movement.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        categories.find(c => c.id === movement.category_id)?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesType = filterType === 'all' || movement.type === filterType
+      
+      const matchesCategory = filterCategory === 'all' || 
+        (filterCategory === '' && !movement.category_id) ||
+        movement.category_id === filterCategory
+
+      return matchesSearch && matchesType && matchesCategory
+    })
+  }, [movements, searchTerm, filterType, filterCategory, categories])
+
+  // Función para validar los datos del formulario (memoizada)
+  const validateMovementForm = useCallback((): string | null => {
+    if (!isPositiveNumber(amount)) {
+      return VALIDATION_MESSAGES.POSITIVE_NUMBER
+    }
+
+    if (!movementDate) {
+      return "Por favor selecciona una fecha"
+    }
+
+    return null
+  }, [amount, movementDate])
+
+  // Función para resetear el formulario (memoizada)
+  const resetMovementForm = useCallback(() => {
+    setAmount('')
+    setMovementDescription('')
+    setSelectedCategoryId('')
+    setMovementDate(getCurrentBogotaDate())
+  }, [])
+
+  // Función para crear el movimiento (memoizada)
+  const createMovement = useCallback(async () => {
+    await createMovementAsync({
+      amount: parseFloat(amount),
+      type: movementType,
+      description: movementDescription || undefined,
+      category_id: selectedCategoryId || undefined,
+      movement_date: dateInputToUTC(movementDate), // Convertir a UTC
+      context_id: activeContext?.id
+    })
+  }, [amount, movementType, movementDescription, selectedCategoryId, movementDate, activeContext?.id, createMovementAsync])
 
   // Show loading state if context is loading
-  if (contextLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          <span>Cargando contexto financiero...</span>
-        </div>
-      </div>
-    )
+  if (contextLoading || movementsLoading || categoriesLoading) {
+    return <MovementsSkeleton />
   }
 
   // Show message if no active context
@@ -107,69 +188,24 @@ export default function MovimientosPage() {
     )
   }
 
-  // Generar opciones de años (últimos 3 años + año actual + próximo año)
-  const yearOptions = []
-  for (let i = currentDate.getFullYear() - 3; i <= currentDate.getFullYear() + 1; i++) {
-    yearOptions.push(i)
-  }
-
-  // Nombres de meses
-  const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ]
-
-  const isCurrentMonth = selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()
-
-  // Filter categories based on movement type
-  const availableCategories = categories.filter(cat => cat.type === tipo)
-  const editAvailableCategories = categories.filter(cat => cat.type === editTipo)
-
-  // Filter movements
-  const filteredMovements = movements.filter(movement => {
-    const matchesSearch = !searchTerm || 
-      movement.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      categories.find(c => c.id === movement.category_id)?.name.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesType = filterType === 'all' || movement.type === filterType
-    
-    const matchesCategory = filterCategory === 'all' || 
-      (filterCategory === '' && !movement.category_id) ||
-      movement.category_id === filterCategory
-
-    return matchesSearch && matchesType && matchesCategory
-  })
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    const validationError = validateMovementForm()
+    if (validationError) {
+      showError(validationError, "Error de validación")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      createMovement({
-        amount: parseFloat(monto),
-        type: tipo,
-        description: description || undefined,
-        category_id: categoryId || undefined,
-        movement_date: dateInputToUTC(fecha), // Convertir a UTC
-        context_id: activeContext?.id
-      })
-
-      // Reset form
-      setMonto('')
-      setDescription('')
-      setCategoryId('')
-      setFecha(getCurrentBogotaDate())
+      await createMovement()
+      resetMovementForm()
       
-      toast({
-        title: "Movimiento registrado",
-        description: `${tipo === 'income' ? 'Ingreso' : 'Egreso'} de $${parseFloat(monto).toLocaleString('es-ES', { minimumFractionDigits: 2 })} registrado exitosamente.`
-      })
+      showOperationSuccess("crear", "Movimiento")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo registrar el movimiento. Inténtalo de nuevo.",
-        variant: "destructive"
-      })
+      showOperationError("crear", "movimiento", error instanceof Error ? error.message : undefined)
     } finally {
       setIsSubmitting(false)
     }
@@ -177,11 +213,11 @@ export default function MovimientosPage() {
 
   const handleEditMovement = (movement: Movement) => {
     setEditingMovement(movement)
-    setEditTipo(movement.type)
-    setEditMonto(movement.amount.toString())
-    setEditCategoryId(movement.category_id || '')
-    setEditFecha(dateUTCToBogota(movement.movement_date)) // Convertir de UTC a Bogotá
-    setEditDescription(movement.description || '')
+    setEditMovementType(movement.type)
+    setEditAmount(movement.amount.toString())
+    setEditSelectedCategoryId(movement.category_id || '')
+    setEditMovementDate(dateUTCToBogota(movement.movement_date)) // Convertir de UTC a Bogotá
+    setEditMovementDescription(movement.description || '')
     setIsEditDialogOpen(true)
   }
 
@@ -195,11 +231,11 @@ export default function MovimientosPage() {
       updateMovement({
         id: editingMovement.id,
         updates: {
-          amount: parseFloat(editMonto),
-          type: editTipo,
-          description: editDescription || undefined,
-          category_id: editCategoryId || undefined,
-          movement_date: dateInputToUTC(editFecha), // Convertir a UTC
+          amount: parseFloat(editAmount),
+          type: editMovementType,
+          description: editMovementDescription || undefined,
+          category_id: editSelectedCategoryId || undefined,
+          movement_date: dateInputToUTC(editMovementDate), // Convertir a UTC
           context_id: activeContext?.id
         }
       })
@@ -207,16 +243,9 @@ export default function MovimientosPage() {
       setIsEditDialogOpen(false)
       setEditingMovement(null)
       
-      toast({
-        title: "Movimiento actualizado",
-        description: "El movimiento ha sido actualizado exitosamente."
-      })
+      showOperationSuccess("actualizar", "Movimiento")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo actualizar el movimiento. Inténtalo de nuevo.",
-        variant: "destructive"
-      })
+      showOperationError("actualizar", "movimiento", error instanceof Error ? error.message : undefined)
     } finally {
       setIsEditSubmitting(false)
     }
@@ -230,32 +259,27 @@ export default function MovimientosPage() {
     try {
       deleteMovement(id)
       
-      toast({
-        title: "Movimiento eliminado",
-        description: "El movimiento ha sido eliminado exitosamente."
-      })
+      showOperationSuccess("eliminar", "Movimiento")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo eliminar el movimiento. Inténtalo de nuevo.",
-        variant: "destructive"
-      })
+      showOperationError("eliminar", "movimiento", error instanceof Error ? error.message : undefined)
     }
   }
 
-  const formatAmount = (amount: number, type: 'income' | 'expense') => {
-    const prefix = type === 'income' ? '+' : '-'
-    return `${prefix}$${amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
-  }
+  // Función de formateo movida a @/lib/formatters
 
   return (
     <div className="space-y-6 max-w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold truncate">Movimientos</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            {isCurrentMonth ? 'Gestiona tus movimientos del mes actual' : `Movimientos de ${monthNames[selectedMonth]} ${selectedYear}`}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              {isCurrentMonth ? 'Gestiona tus movimientos del mes actual' : `Movimientos de ${monthNames[selectedMonth]} ${selectedYear}`} - {activeContext.name}
+            </p>
+            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+            </Badge>
+          </div>
         </div>
         
         {/* Selector de Mes y Año */}
@@ -309,9 +333,9 @@ export default function MovimientosPage() {
               {/* Tipo de Movimiento */}
               <div className="space-y-2">
                 <Label>Tipo de Movimiento</Label>
-                <Tabs value={tipo} onValueChange={(value) => {
-                  setTipo(value as 'income' | 'expense')
-                  setCategoryId('') // Reset category when type changes
+                <Tabs value={movementType} onValueChange={(value) => {
+                  setMovementType(value as 'income' | 'expense')
+                  setSelectedCategoryId('') // Reset category when type changes
                 }}>
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="income" className="text-green-600 text-xs sm:text-sm">
@@ -328,17 +352,17 @@ export default function MovimientosPage() {
 
               {/* Monto */}
               <div className="space-y-2">
-                <Label htmlFor="monto">Monto</Label>
+                <Label htmlFor="amount">Monto</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <Input
-                    id="monto"
+                    id="amount"
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     className="pl-10"
-                    value={monto}
-                    onChange={(e) => setMonto(e.target.value)}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
                     required
                   />
                 </div>
@@ -347,13 +371,13 @@ export default function MovimientosPage() {
               {/* Categoría */}
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría (opcional)</Label>
-                <Select value={categoryId} onValueChange={setCategoryId} disabled={categoriesLoading}>
+                <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId} disabled={categoriesLoading}>
                   <SelectTrigger>
                     <SelectValue placeholder={
                       categoriesLoading 
                         ? "Cargando categorías..." 
                         : availableCategories.length === 0
-                          ? `No hay categorías de ${tipo === 'income' ? 'ingresos' : 'egresos'}`
+                          ? `No hay categorías de ${movementType === 'income' ? 'ingresos' : 'egresos'}`
                           : "Selecciona una categoría (opcional)"
                     } />
                   </SelectTrigger>
@@ -373,27 +397,27 @@ export default function MovimientosPage() {
 
               {/* Fecha */}
               <div className="space-y-2">
-                <Label htmlFor="fecha">Fecha</Label>
+                <Label htmlFor="movementDate">Fecha</Label>
                 <Input
-                  id="fecha"
+                  id="movementDate"
                   type="date"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
+                  value={movementDate}
+                  onChange={(e) => setMovementDate(e.target.value)}
                   required
                 />
               </div>
 
               {/* Descripción */}
               <div className="space-y-2">
-                <Label htmlFor="description">Descripción (opcional)</Label>
+                <Label htmlFor="movementDescription">Descripción (opcional)</Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <Input
-                    id="description"
+                    id="movementDescription"
                     placeholder="Descripción del movimiento..."
                     className="pl-10"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    value={movementDescription}
+                    onChange={(e) => setMovementDescription(e.target.value)}
                   />
                 </div>
               </div>
@@ -512,8 +536,24 @@ export default function MovimientosPage() {
                               <span className="truncate">{category ? `${category.icon} ${category.name}` : '🏷️ Sin categoría'}</span>
                             </Badge>
                             <div className="text-sm text-muted-foreground">
-                              {formatDateForDisplay(movement.movement_date, true)} {/* true indica que viene de UTC */}
+                              {formatDate(movement.movement_date)}
                             </div>
+                          </div>
+                          {/* Información de auditoría */}
+                          <div className="flex items-center space-x-1 mt-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {movement.created_by_profile?.name || 'Usuario desconocido'}
+                            </span>
+                            {movement.updated_by && movement.updated_by !== movement.created_by && (
+                              <>
+                                <span className="text-xs text-muted-foreground">•</span>
+                                <Users className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Editado por {movement.updated_by_profile?.name || 'Usuario desconocido'}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -560,14 +600,41 @@ export default function MovimientosPage() {
             <DialogDescription>
               Modifica los detalles del movimiento
             </DialogDescription>
+            {/* Información de auditoría en el diálogo */}
+            {editingMovement && (
+              <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    Creado por: <span className="font-medium">{editingMovement.created_by_profile?.name || 'Usuario desconocido'}</span>
+                  </span>
+                </div>
+                {editingMovement.updated_by && editingMovement.updated_by !== editingMovement.created_by && (
+                  <div className="flex items-center space-x-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Última modificación: <span className="font-medium">{editingMovement.updated_by_profile?.name || 'Usuario desconocido'}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             {/* Tipo de Movimiento */}
             <div className="space-y-2">
               <Label>Tipo de Movimiento</Label>
-              <Tabs value={editTipo} onValueChange={(value) => {
-                setEditTipo(value as 'income' | 'expense')
-                setEditCategoryId('') // Reset category when type changes
+              <Tabs value={editMovementType} onValueChange={(value) => {
+                const newType = value as 'income' | 'expense'
+                setEditMovementType(newType)
+                
+                // Only reset category if current category is not compatible with new type
+                if (editSelectedCategoryId) {
+                  const currentCategory = categories.find(cat => cat.id === editSelectedCategoryId)
+                  if (currentCategory && currentCategory.type !== newType) {
+                    setEditSelectedCategoryId('')
+                  }
+                }
               }}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="income" className="text-green-600">
@@ -584,17 +651,17 @@ export default function MovimientosPage() {
 
             {/* Monto */}
             <div className="space-y-2">
-              <Label htmlFor="edit-monto">Monto</Label>
+              <Label htmlFor="edit-amount">Monto</Label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="edit-monto"
+                  id="edit-amount"
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   className="pl-10"
-                  value={editMonto}
-                  onChange={(e) => setEditMonto(e.target.value)}
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
                   required
                 />
               </div>
@@ -603,7 +670,7 @@ export default function MovimientosPage() {
             {/* Categoría */}
             <div className="space-y-2">
               <Label htmlFor="edit-categoria">Categoría (opcional)</Label>
-              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+              <Select value={editSelectedCategoryId} onValueChange={setEditSelectedCategoryId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona una categoría (opcional)" />
                 </SelectTrigger>
@@ -623,15 +690,15 @@ export default function MovimientosPage() {
 
             {/* Fecha */}
             <div className="space-y-2">
-              <Label htmlFor="edit-fecha">Fecha</Label>
+              <Label htmlFor="edit-movementDate">Fecha</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="edit-fecha"
+                  id="edit-movementDate"
                   type="date"
                   className="pl-10"
-                  value={editFecha}
-                  onChange={(e) => setEditFecha(e.target.value)}
+                  value={editMovementDate}
+                  onChange={(e) => setEditMovementDate(e.target.value)}
                   required
                 />
               </div>
@@ -639,15 +706,15 @@ export default function MovimientosPage() {
 
             {/* Descripción */}
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Descripción (opcional)</Label>
+              <Label htmlFor="edit-movementDescription">Descripción (opcional)</Label>
               <div className="relative">
                 <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="edit-description"
+                  id="edit-movementDescription"
                   placeholder="Descripción del movimiento..."
                   className="pl-10"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
+                  value={editMovementDescription}
+                  onChange={(e) => setEditMovementDescription(e.target.value)}
                 />
               </div>
             </div>

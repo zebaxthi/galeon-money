@@ -5,11 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 
-interface AuthContextType {
-  user: User | null
-  session: Session | null
-  loading: boolean
-}
+import type { AuthContextType } from '@/lib/types'
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -52,8 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Escuchar cambios de autenticación UNA SOLA VEZ
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.id)
-        
         setSession(newSession)
         setUser(newSession?.user ?? null)
         
@@ -72,12 +66,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [handleSignOut, handleSignIn])
 
+  // Convertir User de Supabase a UserData
+  const userData = useMemo(() => {
+    if (!user) return null
+    return {
+      ...user,
+      user_metadata: user.user_metadata || {}
+    }
+  }, [user])
+
   // Memoizar el valor del contexto para evitar re-renders innecesarios
   const contextValue = useMemo(() => ({
-    user,
+    user: userData,
     session,
     loading
-  }), [user, session, loading])
+  }), [userData, session, loading])
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -20,7 +20,7 @@ import { useMovements } from "@/hooks/useMovements"
 import { useActiveFinancialContext } from "@/providers/financial-context-provider"
 
 export default function ExportarPage() {
-  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, loading: contextLoading } = useActiveFinancialContext()
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaFin, setFechaFin] = useState('')
   const [tipoReporte, setTipoReporte] = useState('completo')

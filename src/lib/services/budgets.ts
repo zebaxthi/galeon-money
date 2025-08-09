@@ -1,7 +1,17 @@
 import { supabase } from '@/lib/supabase'
 import type { Budget, CreateBudgetData } from '@/lib/types'
 
+/**
+ * Servicio para gestionar operaciones CRUD de presupuestos
+ * Incluye validaciones de negocio y manejo de contextos financieros
+ */
 export class BudgetService {
+  /**
+   * Obtiene todos los presupuestos activos del usuario
+   * @param userId - ID del usuario
+   * @param contextId - ID del contexto financiero (opcional)
+   * @returns Promise con array de presupuestos
+   */
   static async getBudgets(userId: string, contextId?: string): Promise<Budget[]> {
     let query = supabase
       .from('budgets')
@@ -15,12 +25,15 @@ export class BudgetService {
           icon
         )
       `)
-      .eq('user_id', userId)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
 
+    // Si se proporciona contextId, filtrar por contexto y dejar que RLS maneje el acceso
     if (contextId) {
       query = query.eq('context_id', contextId)
+    } else {
+      // Solo filtrar por user_id si no hay contextId específico
+      query = query.eq('user_id', userId)
     }
 
     const { data, error } = await query
@@ -32,7 +45,16 @@ export class BudgetService {
     })) || []
   }
 
-  // Validar si existe un presupuesto activo para la misma categoría en el período
+  /**
+   * Valida si existe un presupuesto activo para la misma categoría en el período
+   * @param userId - ID del usuario
+   * @param categoryId - ID de la categoría
+   * @param startDate - Fecha de inicio del presupuesto
+   * @param endDate - Fecha de fin del presupuesto
+   * @param contextId - ID del contexto financiero (opcional)
+   * @param excludeId - ID del presupuesto a excluir de la validación (opcional)
+   * @returns Promise con resultado de validación y presupuesto conflictivo si existe
+   */
   static async validateBudgetUniqueness(
     userId: string,
     categoryId: string,
@@ -87,7 +109,11 @@ export class BudgetService {
     return { isUnique: true }
   }
 
-  // Validar datos de entrada
+  /**
+   * Valida los datos de entrada para crear o actualizar un presupuesto
+   * @param budgetData - Datos del presupuesto a validar
+   * @returns Array de mensajes de error (vacío si es válido)
+   */
   static validateBudgetData(budgetData: CreateBudgetData): string[] {
     const errors: string[] = []
 

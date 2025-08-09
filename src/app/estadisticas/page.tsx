@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Loader2 } from 'lucide-react'
 import {
@@ -23,7 +24,7 @@ import { useStatistics } from '@/hooks/useStatistics'
 import { useActiveFinancialContext } from '@/providers/financial-context-provider'
 
 export default function EstadisticasPage() {
-  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, loading: contextLoading } = useActiveFinancialContext()
   const [periodo, setPeriodo] = useState<'month' | 'year'>('month')
   const { data, loading, error } = useStatistics(periodo, activeContext?.id)
 
@@ -95,9 +96,14 @@ export default function EstadisticasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Estadísticas</h1>
-          <p className="text-muted-foreground">
-            Contexto: {activeContext.name}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-muted-foreground">
+              Contexto: {activeContext.name}
+            </p>
+            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+            </Badge>
+          </div>
         </div>
         
         {/* Selector de Período */}

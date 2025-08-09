@@ -5,12 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/providers/auth-provider'
 import { Loader2 } from 'lucide-react'
 
-interface AuthGuardProps {
-  children: React.ReactNode
-  redirectTo?: string
-}
+import type { AuthGuardProps } from '@/lib/types'
 
-export function AuthGuard({ children, redirectTo = '/auth' }: AuthGuardProps) {
+export function AuthGuard({ children, redirectTo = '/auth/signin' }: AuthGuardProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
 

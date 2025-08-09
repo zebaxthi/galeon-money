@@ -7,9 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ImprovedSidebar } from "./improved-sidebar"
 import { Menu } from "lucide-react"
 
-interface MobileSidebarProps {
-  className?: string
-}
+import type { MobileSidebarProps } from '@/lib/types'
 
 export function MobileSidebar({ className }: MobileSidebarProps) {
   const [open, setOpen] = useState(false)

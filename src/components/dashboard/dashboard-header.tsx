@@ -5,11 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Wallet, LogOut, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import type { UserData } from "@/lib/types"
-
-interface DashboardHeaderProps {
-  user: UserData
-}
+import type { DashboardHeaderProps } from "@/lib/types"
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
   const router = useRouter()

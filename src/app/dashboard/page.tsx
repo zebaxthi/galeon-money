@@ -1,80 +1,100 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useMovements, useMovementStats } from "@/hooks/useMovements"
-import { useBudgetProgress } from "@/hooks/useBudgets"
-import { useCategories } from "@/hooks/useCategories"
-import { useActiveFinancialContext } from "@/providers/financial-context-provider"
-import { formatDateForDisplay } from "@/lib/utils"
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet, 
-  Plus,
-  Target,
-  BarChart3,
-  Loader2,
-  Calendar
-} from "lucide-react"
+// React hooks
+import { useState, useMemo, useCallback } from "react"
+
+// Next.js components
 import Link from "next/link"
 
+// UI Components
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+// Loading components
+import { DashboardSkeleton } from "@/components/loading/dashboard-skeleton"
+
+// Custom hooks
+import { useBudgetProgress } from "@/hooks/useBudgets"
+import { useCategories } from "@/hooks/useCategories"
+import { useMovements, useMovementStats } from "@/hooks/useMovements"
+
+// Providers
+import { useActiveFinancialContext } from "@/providers/financial-context-provider"
+
+// Utilities
+import { formatAmount, formatDate } from "@/lib/formatters"
+
+// Icons
+import {
+  BarChart3,
+  Calendar,
+  Loader2,
+  Plus,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  User,
+  Users,
+  Wallet
+} from "lucide-react"
+
 export default function DashboardPage() {
-  const currentDate = new Date()
+  const currentDate = useMemo(() => new Date(), [])
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
 
-  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, loading: contextLoading } = useActiveFinancialContext()
   
   const { movements, loading: movementsLoading } = useMovements(activeContext?.id, 5)
   const { stats, loading: statsLoading } = useMovementStats(activeContext?.id, selectedYear, selectedMonth)
   const { budgetProgress, loading: budgetLoading } = useBudgetProgress(activeContext?.id)
   const { categories } = useCategories(activeContext?.id)
 
-  // Generar opciones de años (últimos 3 años + año actual + próximo año)
-  const yearOptions = []
-  for (let i = currentDate.getFullYear() - 3; i <= currentDate.getFullYear() + 1; i++) {
-    yearOptions.push(i)
-  }
+  // Generar opciones de años (memoizado)
+  const yearOptions = useMemo(() => {
+    const options = []
+    for (let i = currentDate.getFullYear() - 3; i <= currentDate.getFullYear() + 1; i++) {
+      options.push(i)
+    }
+    return options
+  }, [currentDate])
 
-  // Nombres de meses
-  const monthNames = [
+  // Nombres de meses (memoizado)
+  const monthNames = useMemo(() => [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ]
+  ], [])
 
-  // Calcular progreso promedio de presupuestos
-  const averageBudgetProgress = budgetProgress.length > 0 
-    ? budgetProgress.reduce((acc, budget) => {
-        const percentage = (budget.spent / budget.amount) * 100
-        return acc + percentage
-      }, 0) / budgetProgress.length
-    : 0
+  // Calcular progreso promedio de presupuestos (memoizado)
+  const averageBudgetProgress = useMemo(() => {
+    return budgetProgress.length > 0 
+      ? budgetProgress.reduce((acc, budget) => {
+          const percentage = (budget.spent / budget.amount) * 100
+          return acc + percentage
+        }, 0) / budgetProgress.length
+      : 0
+  }, [budgetProgress])
 
-  const formatAmount = (amount: number, type?: 'income' | 'expense') => {
-    const prefix = type === 'income' ? '+' : type === 'expense' ? '-' : ''
-    return `${prefix}$${amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
-  }
+  // Verificar si es el mes actual (memoizado)
+  const isCurrentMonth = useMemo(() => 
+    selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth(),
+    [selectedYear, selectedMonth, currentDate]
+  )
 
-  const formatDate = (dateString: string) => {
-    return formatDateForDisplay(dateString, true) // true indica que viene de UTC
-  }
+  // Handlers optimizados
+  const handleMonthChange = useCallback((value: string) => {
+    setSelectedMonth(parseInt(value))
+  }, [])
 
-  const isCurrentMonth = selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()
+  const handleYearChange = useCallback((value: string) => {
+    setSelectedYear(parseInt(value))
+  }, [])
 
   // Mostrar loading si el contexto está cargando
-  if (contextLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Cargando contexto financiero...</p>
-        </div>
-      </div>
-    )
+  if (contextLoading || statsLoading) {
+    return <DashboardSkeleton />
   }
 
   // Mostrar mensaje si no hay contexto activo
@@ -88,7 +108,7 @@ export default function DashboardPage() {
             Necesitas crear o seleccionar un contexto financiero para ver tus datos.
           </p>
           <Button asChild>
-            <Link href="/dashboard/ajustes">
+            <Link href="/ajustes">
               Ir a Configuración
             </Link>
           </Button>
@@ -102,9 +122,14 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold truncate">Dashboard</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Resumen de tu situación financiera - {activeContext.name}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Resumen de tu situación financiera - {activeContext.name}
+            </p>
+            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+            </Badge>
+          </div>
         </div>
         
         {/* Selector de Mes y Año */}
@@ -112,7 +137,7 @@ export default function DashboardPage() {
           <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <Select 
             value={selectedMonth.toString()} 
-            onValueChange={(value) => setSelectedMonth(parseInt(value))}
+            onValueChange={handleMonthChange}
           >
             <SelectTrigger className="w-24 sm:w-32">
               <SelectValue placeholder={monthNames[selectedMonth]} />
@@ -128,7 +153,7 @@ export default function DashboardPage() {
           
           <Select 
             value={selectedYear.toString()} 
-            onValueChange={(value) => setSelectedYear(parseInt(value))}
+            onValueChange={handleYearChange}
           >
             <SelectTrigger className="w-20 sm:w-24">
               <SelectValue placeholder={selectedYear.toString()} />
@@ -258,19 +283,19 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Button asChild className="w-full">
-              <Link href="/dashboard/movimientos">
+              <Link href="/movimientos">
                 <Plus className="mr-2 h-4 w-4" />
                 Registrar Movimiento
               </Link>
             </Button>
             <Button variant="outline" asChild className="w-full">
-              <Link href="/dashboard/presupuestos">
+              <Link href="/presupuestos">
                 <Target className="mr-2 h-4 w-4" />
                 Ver Presupuestos
               </Link>
             </Button>
             <Button variant="outline" asChild className="w-full">
-              <Link href="/dashboard/estadisticas">
+              <Link href="/estadisticas">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Ver Estadísticas
               </Link>
@@ -326,6 +351,22 @@ export default function DashboardPage() {
                               {formatDate(movement.movement_date)}
                             </span>
                           </div>
+                          {/* Información de auditoría */}
+                          <div className="flex items-center space-x-1 mt-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {movement.created_by_profile?.name || 'Usuario desconocido'}
+                            </span>
+                            {movement.updated_by && movement.updated_by !== movement.created_by && (
+                              <>
+                                <span className="text-xs text-muted-foreground">•</span>
+                                <Users className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Editado por {movement.updated_by_profile?.name || 'Usuario desconocido'}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <span className={`font-medium text-sm ${
@@ -339,7 +380,7 @@ export default function DashboardPage() {
               </div>
             )}
             <Button variant="outline" asChild className="w-full mt-4">
-              <Link href="/dashboard/movimientos">
+              <Link href="/movimientos">
                 Ver Todos los Movimientos
               </Link>
             </Button>

@@ -1,7 +1,24 @@
 import { supabase } from '@/lib/supabase'
-import type { Movement, CreateMovementData } from '@/lib/types'
+import type { Movement, CreateMovementData, UpdateMovementData } from '@/lib/types'
 
+/**
+ * Service class for managing financial movements
+ * 
+ * Handles CRUD operations for movements with support for:
+ * - Multi-context filtering (personal vs shared contexts)
+ * - Complex queries with category and profile joins
+ * - Statistical calculations and aggregations
+ * - Optimized data retrieval for dashboard analytics
+ */
 export class MovementService {
+  /**
+   * Retrieves movements with optional filtering and pagination
+   * 
+   * @param userId - The user ID for RLS filtering
+   * @param contextId - Optional context ID for multi-context filtering
+   * @param limit - Optional limit for pagination
+   * @returns Promise resolving to array of movements with joined data
+   */
   static async getMovements(userId: string, contextId?: string, limit?: number): Promise<Movement[]> {
     let query = supabase
       .from('movements')
@@ -18,14 +35,22 @@ export class MovementService {
           id,
           name,
           email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
+          id,
+          name,
+          email
         )
       `)
-      .eq('user_id', userId)
       .order('movement_date', { ascending: false })
       .order('created_at', { ascending: false })
 
+    // Si se proporciona contextId, filtrar por contexto y dejar que RLS maneje el acceso
     if (contextId) {
       query = query.eq('context_id', contextId)
+    } else {
+      // Solo filtrar por user_id si no hay contextId específico
+      query = query.eq('user_id', userId)
     }
 
     if (limit) {
@@ -38,10 +63,20 @@ export class MovementService {
     return data?.map(movement => ({
       ...movement,
       category: movement.categories,
-      created_by_profile: movement.created_by_profile
+      created_by_profile: movement.created_by_profile,
+      updated_by_profile: movement.updated_by_profile
     })) || []
   }
 
+  /**
+   * Retrieves movements within a specific date range
+   * 
+   * @param userId - The user ID for RLS filtering
+   * @param startDate - Start date in YYYY-MM-DD format
+   * @param endDate - End date in YYYY-MM-DD format
+   * @param contextId - Optional context ID for multi-context filtering
+   * @returns Promise resolving to array of movements within the date range
+   */
   static async getMovementsByDateRange(userId: string, startDate: string, endDate: string, contextId?: string): Promise<Movement[]> {
     let query = supabase
       .from('movements')
@@ -58,15 +93,23 @@ export class MovementService {
           id,
           name,
           email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
+          id,
+          name,
+          email
         )
       `)
-      .eq('user_id', userId)
       .gte('movement_date', startDate)
       .lte('movement_date', endDate)
       .order('movement_date', { ascending: false })
 
+    // Si se proporciona contextId, filtrar por contexto y dejar que RLS maneje el acceso
     if (contextId) {
       query = query.eq('context_id', contextId)
+    } else {
+      // Solo filtrar por user_id si no hay contextId específico
+      query = query.eq('user_id', userId)
     }
 
     const { data, error } = await query
@@ -75,7 +118,8 @@ export class MovementService {
     return data?.map(movement => ({
       ...movement,
       category: movement.categories,
-      created_by_profile: movement.created_by_profile
+      created_by_profile: movement.created_by_profile,
+      updated_by_profile: movement.updated_by_profile
     })) || []
   }
 
@@ -102,6 +146,11 @@ export class MovementService {
           id,
           name,
           email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
+          id,
+          name,
+          email
         )
       `)
       .single()
@@ -110,14 +159,20 @@ export class MovementService {
     return {
       ...data,
       category: data.categories,
-      created_by_profile: data.created_by_profile
+      created_by_profile: data.created_by_profile,
+      updated_by_profile: data.updated_by_profile
     }
   }
 
-  static async updateMovement(id: string, updates: Partial<CreateMovementData>): Promise<Movement> {
+  static async updateMovement(id: string, updates: UpdateMovementData, updatedBy?: string): Promise<Movement> {
+    const updateData = { ...updates }
+    if (updatedBy) {
+      updateData.updated_by = updatedBy
+    }
+    
     const { data, error } = await supabase
       .from('movements')
-      .update(updates)
+      .update(updateData)
       .eq('id', id)
       .select(`
         *,
@@ -132,6 +187,11 @@ export class MovementService {
           id,
           name,
           email
+        ),
+        updated_by_profile:profiles!movements_updated_by_fkey (
+          id,
+          name,
+          email
         )
       `)
       .single()
@@ -140,7 +200,8 @@ export class MovementService {
     return {
       ...data,
       category: data.categories,
-      created_by_profile: data.created_by_profile
+      created_by_profile: data.created_by_profile,
+      updated_by_profile: data.updated_by_profile
     }
   }
 
@@ -153,6 +214,15 @@ export class MovementService {
     if (error) throw error
   }
 
+  /**
+   * Calculates basic movement statistics for a specific month
+   * 
+   * @param userId - The user ID for filtering
+   * @param contextId - Optional context ID for multi-context filtering
+   * @param year - Target year (defaults to current year)
+   * @param month - Target month (defaults to current month)
+   * @returns Object with totalIncome, totalExpenses, balance, and movementsCount
+   */
   static async getMovementStats(userId: string, contextId?: string, year?: number, month?: number) {
     // Si no se especifica año/mes, usar el mes actual
     const currentDate = new Date()
@@ -187,7 +257,19 @@ export class MovementService {
     }
   }
 
-  // Método optimizado que obtiene todos los datos de estadísticas en una sola llamada
+  /**
+   * Optimized method that retrieves all statistics data in a single database call
+   * 
+   * This method performs complex aggregations and calculations including:
+   * - Detailed financial stats (totals, balance, averages)
+   * - Monthly comparison data for trend analysis
+   * - Category-wise expense breakdown with uncategorized handling
+   * 
+   * @param userId - The user ID for filtering
+   * @param period - Time period for analysis ('month' = 6 months, 'year' = 12 months)
+   * @param contextId - Optional context ID for multi-context filtering
+   * @returns Comprehensive statistics object with all dashboard data
+   */
   static async getStatisticsData(userId: string, period: 'month' | 'year' = 'month', contextId?: string) {
     const currentDate = new Date()
     let startDate: Date
@@ -258,6 +340,8 @@ export class MovementService {
     }
 
     // 3. Category Stats - INCLUIR MOVIMIENTOS SIN CATEGORÍA
+    // This aggregation handles both categorized and uncategorized expenses
+    // ensuring complete financial visibility
     const expensesByCategory = movements
       .filter(m => m.type === 'expense') // Incluir TODOS los egresos, con y sin categoría
       .reduce((acc, movement) => {
@@ -293,17 +377,40 @@ export class MovementService {
     }
   }
 
-  // Mantener métodos individuales para compatibilidad, pero que usen el método optimizado
+  /**
+   * Legacy compatibility methods that use the optimized getStatisticsData
+   * These methods maintain backward compatibility while leveraging the optimized approach
+   */
+  
+  /**
+   * Gets detailed financial statistics for a period
+   * @param userId - The user ID for filtering
+   * @param period - Time period for analysis
+   * @param contextId - Optional context ID for multi-context filtering
+   * @returns Detailed stats object
+   */
   static async getDetailedStats(userId: string, period: 'month' | 'year' = 'month', contextId?: string) {
     const data = await this.getStatisticsData(userId, period, contextId)
     return data.detailedStats
   }
 
+  /**
+   * Gets monthly comparison data for trend analysis
+   * @param userId - The user ID for filtering
+   * @param contextId - Optional context ID for multi-context filtering
+   * @returns Array of monthly comparison data
+   */
   static async getMonthlyComparison(userId: string, contextId?: string) {
     const data = await this.getStatisticsData(userId, 'month', contextId)
     return data.monthlyComparison
   }
 
+  /**
+   * Gets category-wise expense statistics
+   * @param userId - The user ID for filtering
+   * @param contextId - Optional context ID for multi-context filtering
+   * @returns Array of category statistics
+   */
   static async getCategoryStats(userId: string, contextId?: string) {
     const data = await this.getStatisticsData(userId, 'month', contextId)
     return data.categoryStats

@@ -1,28 +1,39 @@
 'use client'
 
-import { useState } from 'react'
-import { useCategories } from '@/hooks/useCategories'
-import { useActiveFinancialContext } from '@/providers/financial-context-provider'
+// React hooks
+import { useState, useMemo, useCallback } from 'react'
+
+// Next.js components
+import Link from "next/link"
+
+// UI Components
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { EmojiPicker } from '@/components/ui/emoji-picker'
+
+// Custom hooks
+import { useCategories } from '@/hooks/useCategories'
 import { useToast } from '@/hooks/use-toast'
-import { 
-  Tag, 
-  TrendingUp, 
-  TrendingDown, 
-  Plus, 
-  Loader2, 
-  Trash2,
-  Search,
+
+// Providers
+import { useActiveFinancialContext } from '@/providers/financial-context-provider'
+
+// Icons
+import {
   Filter,
+  Loader2,
+  Plus,
+  Search,
+  Tag,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
   Wallet
 } from 'lucide-react'
-import Link from "next/link"
 
 export default function CategoriasPage() {
   const [nombreCategoria, setNombreCategoria] = useState('')
@@ -32,7 +43,7 @@ export default function CategoriasPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
 
-  const { activeContext, isLoading: contextLoading } = useActiveFinancialContext()
+  const { activeContext, loading: contextLoading } = useActiveFinancialContext()
   const { 
     categories, 
     loading, 
@@ -42,6 +53,45 @@ export default function CategoriasPage() {
   } = useCategories(activeContext?.id)
   
   const { toast } = useToast()
+
+  // Filtrar categorías por búsqueda y tipo (memoizado)
+  const filteredCategories = useMemo(() => {
+    return categories.filter(category => {
+      const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesType = filterType === 'all' || category.type === filterType
+      return matchesSearch && matchesType
+    })
+  }, [categories, searchTerm, filterType])
+
+  const filteredIngresos = useMemo(() => 
+    filteredCategories.filter(cat => cat.type === 'income'), 
+    [filteredCategories]
+  )
+  
+  const filteredEgresos = useMemo(() => 
+    filteredCategories.filter(cat => cat.type === 'expense'), 
+    [filteredCategories]
+  )
+
+  const handleDeleteCategory = useCallback(async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar la categoría "${name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteCategory(id)
+      toast({
+        title: "Categoría eliminada",
+        description: `La categoría "${name}" ha sido eliminada correctamente`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo eliminar la categoría. Puede que tenga movimientos asociados.",
+        variant: "destructive"
+      })
+    }
+  }, [deleteCategory, toast])
 
   // Mostrar loading si el contexto está cargando
   if (contextLoading) {
@@ -66,7 +116,7 @@ export default function CategoriasPage() {
             Necesitas crear o seleccionar un contexto financiero para gestionar categorías.
           </p>
           <Button asChild>
-            <Link href="/dashboard/ajustes">
+            <Link href="/ajustes">
               Ir a Configuración
             </Link>
           </Button>
@@ -74,16 +124,6 @@ export default function CategoriasPage() {
       </div>
     )
   }
-
-  // Filtrar categorías por búsqueda y tipo
-  const filteredCategories = categories.filter(category => {
-    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = filterType === 'all' || category.type === filterType
-    return matchesSearch && matchesType
-  })
-
-  const filteredIngresos = filteredCategories.filter(cat => cat.type === 'income')
-  const filteredEgresos = filteredCategories.filter(cat => cat.type === 'expense')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -163,33 +203,18 @@ export default function CategoriasPage() {
     }
   }
 
-  const handleDeleteCategory = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar la categoría "${name}"?`)) {
-      return
-    }
-
-    try {
-      await deleteCategory(id)
-      toast({
-        title: "Categoría eliminada",
-        description: `La categoría "${name}" ha sido eliminada correctamente`,
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo eliminar la categoría. Puede que tenga movimientos asociados.",
-        variant: "destructive"
-      })
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Categorías</h1>
-        <p className="text-muted-foreground">
-          Organiza tus movimientos con categorías personalizadas - {activeContext.name}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-muted-foreground">
+            Organiza tus movimientos con categorías personalizadas - {activeContext.name}
+          </p>
+          <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
+            {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

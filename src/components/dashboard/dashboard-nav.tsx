@@ -14,9 +14,7 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-interface DashboardNavProps {
-  isMobile?: boolean
-}
+import type { DashboardNavProps } from '@/lib/types'
 
 const navItems = [
   {
@@ -26,32 +24,32 @@ const navItems = [
   },
   {
     title: "Movimientos",
-    href: "/dashboard/movimientos",
+    href: "/movimientos",
     icon: Plus,
   },
   {
     title: "Categorías",
-    href: "/dashboard/categorias",
+    href: "/categorias",
     icon: Folder,
   },
   {
     title: "Presupuestos",
-    href: "/dashboard/presupuestos",
+    href: "/presupuestos",
     icon: Target,
   },
   {
     title: "Estadísticas",
-    href: "/dashboard/estadisticas",
+    href: "/estadisticas",
     icon: BarChart3,
   },
   {
     title: "Exportar",
-    href: "/dashboard/exportar",
+    href: "/exportar",
     icon: Download,
   },
   {
     title: "Ajustes",
-    href: "/dashboard/ajustes",
+    href: "/ajustes",
     icon: Settings,
   },
 ]

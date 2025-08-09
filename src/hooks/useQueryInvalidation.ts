@@ -1,26 +1,55 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/providers/auth-provider'
 
 export function useQueryInvalidation() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
 
   const invalidateMovementRelatedQueries = () => {
-    // Invalidar todas las queries que dependen de movimientos
-    queryClient.invalidateQueries({ queryKey: ['movements'] })
-    queryClient.invalidateQueries({ queryKey: ['movement-stats'] })
-    queryClient.invalidateQueries({ queryKey: ['statistics'] })
-    queryClient.invalidateQueries({ queryKey: ['export-data'] })
-    queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+    // Remover y luego invalidar todas las queries que dependen de movimientos
+    queryClient.removeQueries({ 
+      queryKey: ['movements', user?.id],
+      exact: false
+    })
+    queryClient.removeQueries({ 
+      queryKey: ['movement-stats', user?.id],
+      exact: false
+    })
+    queryClient.invalidateQueries({ 
+      queryKey: ['statistics', user?.id],
+      exact: false
+    })
+    queryClient.invalidateQueries({ 
+      queryKey: ['export-data', user?.id],
+      exact: false
+    })
+    queryClient.invalidateQueries({ 
+      queryKey: ['budget-progress', user?.id],
+      exact: false
+    })
   }
 
   const invalidateBudgetRelatedQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ['budgets'] })
-    queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+    queryClient.removeQueries({ 
+      queryKey: ['budgets', user?.id],
+      exact: false
+    })
+    queryClient.invalidateQueries({ 
+      queryKey: ['budget-progress', user?.id],
+      exact: false
+    })
   }
 
   const invalidateCategoryRelatedQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ['categories'] })
+    queryClient.removeQueries({ 
+      queryKey: ['categories', user?.id],
+      exact: false
+    })
     // Las categorías pueden afectar estadísticas si se cambian colores/nombres
-    queryClient.invalidateQueries({ queryKey: ['statistics'] })
+    queryClient.invalidateQueries({ 
+      queryKey: ['statistics', user?.id],
+      exact: false
+    })
   }
 
   const invalidateAllFinancialData = () => {

@@ -5,7 +5,9 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { useNotifications } from '@/hooks/useNotifications'
 import { 
   Palette, 
   DollarSign, 
@@ -13,21 +15,26 @@ import {
   Bell,
   Mail,
   TrendingUp,
-  Settings2
+  Settings2,
+  Smartphone,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Calendar
 } from 'lucide-react'
 
-interface UserPreferences {
-  notifications?: boolean
-  emailNotifications?: boolean
-  budgetAlerts?: boolean
-}
-
-interface AppPreferencesProps {
-  preferences: UserPreferences
-  updatePreferences: (updates: Partial<UserPreferences>) => Promise<void>
-}
+import type { AppPreferencesProps } from '@/lib/types'
 
 export function AppPreferences({ preferences, updatePreferences }: AppPreferencesProps) {
+  const {
+    isSupported: pushSupported,
+    permission: pushPermission,
+    isSubscribed: pushSubscribed,
+    isLoading: pushLoading,
+    requestPermission,
+    subscribe,
+    unsubscribe
+  } = useNotifications()
   return (
     <Card className="h-fit">
       <CardHeader className="pb-4">
@@ -111,19 +118,83 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
           </div>
           
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 flex-1">
-                <Label className="text-sm font-medium">Notificaciones en la app</Label>
-                <p className="text-xs text-muted-foreground">
-                  Recibe notificaciones dentro de la aplicación
-                </p>
+            {/* Notificaciones Push */}
+            <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1 flex-1">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Smartphone className="h-3 w-3" />
+                    Notificaciones Push
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Recibe notificaciones incluso cuando la app esté cerrada
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {pushSupported ? (
+                    <>
+                      {pushPermission === 'granted' ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : pushPermission === 'denied' ? (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Bell className="h-4 w-4 text-yellow-500" />
+                      )}
+                      <Badge variant={pushPermission === 'granted' ? 'default' : 'secondary'} className="text-xs">
+                        {pushPermission === 'granted' ? 'Permitido' : 
+                         pushPermission === 'denied' ? 'Denegado' : 'Pendiente'}
+                      </Badge>
+                    </>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">No soportado</Badge>
+                  )}
+                </div>
               </div>
-              <Switch
-                checked={preferences?.notifications !== false}
-                onCheckedChange={(checked) => updatePreferences({ notifications: checked })}
-              />
+              
+              {pushSupported && (
+                <div className="flex gap-2">
+                  {pushPermission !== 'granted' ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={requestPermission}
+                      disabled={pushLoading}
+                      className="text-xs"
+                    >
+                      {pushLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                      Permitir Notificaciones
+                    </Button>
+                  ) : (
+                    <>
+                      {!pushSubscribed ? (
+                        <Button
+                          size="sm"
+                          onClick={subscribe}
+                          disabled={pushLoading}
+                          className="text-xs"
+                        >
+                          {pushLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          Activar Push
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={unsubscribe}
+                          disabled={pushLoading}
+                          className="text-xs"
+                        >
+                          {pushLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          Desactivar Push
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
+            {/* Notificaciones por email */}
             <div className="flex items-center justify-between">
               <div className="space-y-1 flex-1">
                 <Label className="text-sm font-medium flex items-center gap-2">
@@ -135,11 +206,17 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
                 </p>
               </div>
               <Switch
-                checked={preferences?.emailNotifications !== false}
-                onCheckedChange={(checked) => updatePreferences({ emailNotifications: checked })}
+                checked={preferences?.notifications?.email !== false}
+                onCheckedChange={(checked) => updatePreferences({ 
+                  notifications: { 
+                    ...preferences?.notifications, 
+                    email: checked 
+                  } 
+                })}
               />
             </div>
 
+            {/* Alertas de presupuesto */}
             <div className="flex items-center justify-between">
               <div className="space-y-1 flex-1">
                 <Label className="text-sm font-medium flex items-center gap-2">
@@ -151,8 +228,35 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
                 </p>
               </div>
               <Switch
-                checked={preferences?.budgetAlerts !== false}
-                onCheckedChange={(checked) => updatePreferences({ budgetAlerts: checked })}
+                checked={preferences?.notifications?.budgetAlerts !== false}
+                onCheckedChange={(checked) => updatePreferences({ 
+                  notifications: { 
+                    ...preferences?.notifications, 
+                    budgetAlerts: checked 
+                  } 
+                })}
+              />
+            </div>
+
+            {/* Reportes semanales */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-1 flex-1">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="h-3 w-3" />
+                  Reportes semanales
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Recibe un resumen semanal de tus finanzas
+                </p>
+              </div>
+              <Switch
+                checked={preferences?.notifications?.weeklyReports !== false}
+                onCheckedChange={(checked) => updatePreferences({ 
+                  notifications: { 
+                    ...preferences?.notifications, 
+                    weeklyReports: checked 
+                  } 
+                })}
               />
             </div>
           </div>

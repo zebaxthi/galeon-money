@@ -1,13 +1,6 @@
 import { useState, useEffect } from 'react'
 
-interface PWAInstallPrompt extends Event {
-  prompt(): Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
-
-interface NavigatorWithStandalone extends Navigator {
-  standalone?: boolean
-}
+import type { PWAInstallPrompt, NavigatorWithStandalone } from '@/lib/types'
 
 export function usePWA() {
   const [isInstallable, setIsInstallable] = useState(false)

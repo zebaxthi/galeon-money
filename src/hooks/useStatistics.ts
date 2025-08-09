@@ -2,28 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/providers/auth-provider'
 import { MovementService } from '@/lib/services/movements'
 
-interface StatisticsData {
-  resumenEstadisticas: {
-    totalIngresos: number
-    totalEgresos: number
-    saldoNeto: number
-    promedioMensual: number
-  }
-  datosIngresoEgreso: Array<{
-    mes: string
-    ingresos: number
-    egresos: number
-  }>
-  datosCategorias: Array<{
-    nombre: string
-    valor: number
-    color: string
-  }>
-  tendenciaMensual: Array<{
-    mes: string
-    saldo: number
-  }>
-}
+import type { StatisticsData } from '@/lib/types'
 
 export function useStatistics(period: 'month' | 'year' = 'month', contextId?: string) {
   const { user } = useAuth()
