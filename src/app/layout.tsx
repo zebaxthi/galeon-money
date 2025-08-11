@@ -6,6 +6,7 @@ import { AuthProvider } from "@/providers/auth-provider"
 import { QueryProvider } from "@/providers/query-provider"
 import { AuthListener } from "@/providers/auth-listener"
 import { Toaster } from "@/components/ui/toaster"
+import { AnimatedBackground } from "@/components/ui/animated-background"
 
 import { CleanupInitializer } from "@/components/utils/cleanup-initializer"
 
@@ -79,6 +80,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <AnimatedBackground />
           <QueryProvider>
             <AuthProvider>
               <CleanupInitializer />

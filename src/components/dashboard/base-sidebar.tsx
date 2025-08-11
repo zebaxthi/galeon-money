@@ -118,7 +118,7 @@ export function BaseSidebar({
   return (
     <div 
       className={cn(
-        "flex flex-col h-full bg-background transition-all duration-300 overflow-hidden",
+        "flex flex-col h-full bg-background/80 backdrop-blur-sm transition-all duration-300 overflow-hidden",
         "relative",
         "max-w-full", // Prevent overflow on mobile
         // Dynamic width classes based on state

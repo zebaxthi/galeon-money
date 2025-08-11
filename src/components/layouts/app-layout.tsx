@@ -9,7 +9,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <AuthGuard>
       <FinancialContextProvider>
-        <div className="flex h-screen bg-background">
+        <div className="flex h-screen">
           {/* Desktop Sidebar */}
           <div className="hidden md:flex md:flex-col border-r border-border">
             <Sidebar />
