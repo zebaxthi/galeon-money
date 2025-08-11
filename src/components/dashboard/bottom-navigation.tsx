@@ -1,18 +1,21 @@
 "use client"
 
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
+import { BaseSidebar } from "./base-sidebar"
 import { 
   Home, 
   Plus, 
   Target,
-  Menu,
-  Folder
+  Folder,
+  MoreHorizontal
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet"
-import { ImprovedSidebar } from "./improved-sidebar"
+
 
 const mainNavItems = [
   {
@@ -40,6 +43,7 @@ const mainNavItems = [
 
 export function BottomNavigation() {
   const pathname = usePathname()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
@@ -50,7 +54,7 @@ export function BottomNavigation() {
         <div className="safe-area-inset-bottom">
           <nav className="flex items-center justify-center px-4 py-3">
             <div className="flex items-center justify-between w-full max-w-md mx-auto">
-              {mainNavItems.map((item, index) => {
+              {mainNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 const isCenter = 'isCenter' in item && item.isCenter
@@ -107,25 +111,36 @@ export function BottomNavigation() {
                 )
               })}
               
-              {/* Menu Button */}
-              <Sheet>
+              {/* More button with Sheet */}
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex flex-col items-center justify-center w-12 h-12 rounded-xl px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="flex flex-col items-center justify-center h-auto w-12 h-12 rounded-xl px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-300 ease-out hover:scale-105 active:scale-95"
                   >
-                    <Menu className="h-5 w-5 mb-0.5 flex-shrink-0" />
-                    <span className="text-[10px] font-medium leading-tight">Más</span>
+                    <MoreHorizontal className="h-5 w-5 mb-0.5" />
+                    <span className="text-[10px] font-medium leading-tight">
+                      Más
+                    </span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-full max-w-xs sm:max-w-sm z-60">
-                  <SheetHeader className="sr-only">
+                <SheetContent 
+                  side="left" 
+                  className="p-0 w-80 max-w-[85vw] border-0 bg-transparent shadow-none flex items-center justify-center [&>button]:hidden"
+                >
+                  <VisuallyHidden>
                     <SheetTitle>Menú de navegación</SheetTitle>
-                  </SheetHeader>
-                  <ImprovedSidebar />
+                  </VisuallyHidden>
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <BaseSidebar 
+                      variant="improved"
+                      className="w-full max-w-sm"
+                    />
+                  </div>
                 </SheetContent>
               </Sheet>
+
             </div>
           </nav>
         </div>

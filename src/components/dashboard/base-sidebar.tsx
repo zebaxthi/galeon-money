@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { SidebarBackground } from "./sidebar-background"
 import { 
   Home, 
   Plus, 
@@ -118,16 +119,20 @@ export function BaseSidebar({
   return (
     <div 
       className={cn(
-        "flex flex-col h-full bg-background/80 backdrop-blur-sm transition-all duration-300 overflow-hidden",
-        "relative",
-        "max-w-full", // Prevent overflow on mobile
+        "flex flex-col h-full transition-all duration-300 overflow-hidden",
+        "relative rounded-2xl shadow-2xl",
+        "backdrop-blur-md bg-background/10",
         // Dynamic width classes based on state
         isCollapsed ? "w-16" : (isImproved ? "w-64" : "w-56"),
         className
       )}
     >
+      <SidebarBackground />
       {/* Header */}
-      <div className="p-4 border-b flex-shrink-0">
+      <div className={cn(
+        "border-b border-border/50 flex-shrink-0",
+        isCollapsed ? "justify-center px-2 py-3" : "p-3 lg:p-4 px-3 py-2"
+      )}>
         <div className="flex items-center justify-between">
           <div className={cn(
             "flex items-center min-w-0",
@@ -177,8 +182,11 @@ export function BaseSidebar({
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto">
-        <nav className="px-3 py-2 space-y-1">
+      <div className="flex-1 overflow-y-auto flex flex-col justify-center">
+        <nav className={cn(
+          "py-1 space-y-0.5",
+          isCollapsed ? "px-2" : "px-2 lg:px-3"
+        )}>
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -217,16 +225,19 @@ export function BaseSidebar({
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-2 border-t flex-shrink-0">
+      <div className={cn(
+        "border-t border-border/50 flex-shrink-0",
+        isCollapsed ? "p-2" : "p-2 lg:p-4 px-3 py-2"
+      )}>
         {/* Settings and Theme */}
         {!isCollapsed ? (
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1">
             <Link href="/ajustes" className="flex-1 mr-2">
               <Button
                 variant={pathname === "/ajustes" ? "default" : "ghost"}
                 size="sm"
                 className={cn(
-                  "w-full justify-start",
+                  "w-full justify-start rounded-xl",
                   pathname === "/ajustes" && "bg-violet-600 text-white hover:bg-violet-700"
                 )}
               >
@@ -239,13 +250,13 @@ export function BaseSidebar({
             </div>
           </div>
         ) : (
-          <div className="space-y-2 mb-2">
+          <div className="space-y-1 mb-1">
             <Link href="/ajustes">
               <Button
                 variant={pathname === "/ajustes" ? "default" : "ghost"}
                 size="sm"
                 className={cn(
-                  "w-full justify-center px-0",
+                  "w-full justify-center px-0 rounded-xl",
                   pathname === "/ajustes" && "bg-violet-600 text-white hover:bg-violet-700"
                 )}
                 title="Ajustes"
@@ -260,11 +271,11 @@ export function BaseSidebar({
         )}
 
         {/* User Section */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           {!isCollapsed ? (
             <Button
               variant="ghost"
-              className="w-full p-2 h-auto justify-start"
+              className="w-full p-2 h-auto justify-start rounded-xl"
               onClick={() => setUserMenuOpen(!userMenuOpen)}
             >
               <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -302,7 +313,7 @@ export function BaseSidebar({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
                 onClick={handleSignOut}
                 title="Cerrar Sesión"
               >
@@ -316,7 +327,7 @@ export function BaseSidebar({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
