@@ -12,7 +12,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Wallet className="h-8 w-8 text-violet-600" />
-            <span className="text-xl font-bold">Galeon Money</span>
+            <span className="text-xl font-bold">Stonk$</span>
           </div>
           <div className="flex items-center space-x-4">
             <Button variant="ghost" asChild>

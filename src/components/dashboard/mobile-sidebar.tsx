@@ -18,7 +18,7 @@ export function MobileSidebar({ className }: MobileSidebarProps) {
         <Button
           variant="ghost"
           size="sm"
-          className={cn("lg:hidden fixed top-4 left-4 z-50", className)}
+          className={cn("lg:hidden fixed top-4 left-4 z-40", className)}
         >
           <Menu className="h-5 w-5" />
         </Button>

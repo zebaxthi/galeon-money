@@ -100,9 +100,6 @@ export default function EstadisticasPage() {
             <p className="text-muted-foreground">
               Contexto: {activeContext.name}
             </p>
-            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
-              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
-            </Badge>
           </div>
         </div>
         

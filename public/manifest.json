@@ -1,7 +1,7 @@
 {
-  "name": "Galeon Money - Finanzas Personales",
-  "short_name": "Galeon Money",
-  "description": "Gestiona tus finanzas de manera inteligente con Galeon Money",
+  "name": "Stonk$ - Finanzas Personales",
+  "short_name": "Stonk$",
+  "description": "Gestiona tus finanzas de manera inteligente con Stonk$",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",

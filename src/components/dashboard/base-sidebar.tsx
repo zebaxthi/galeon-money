@@ -69,9 +69,7 @@ const navItems = [
 
 export function BaseSidebar({ 
   className, 
-  variant = 'default',
-  collapsedWidth = 16,
-  expandedWidth = variant === 'improved' ? 64 : 56
+  variant = 'default'
 }: BaseSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -112,48 +110,38 @@ export function BaseSidebar({
   }
 
   const isImproved = variant === 'improved'
-  const headerTitle = isImproved ? "Galeon Money" : "Galeon"
+  const headerTitle = isImproved ? "Stonk$" : "Stonk$"
   const headerSubtitle = isImproved ? "Finanzas Personales" : "Money Manager"
-  const iconSize = isImproved ? "h-6 w-6" : "h-5 w-5"
   const avatarSize = isCollapsed ? "h-8 w-8" : (isImproved ? "h-10 w-10" : "h-10 w-10")
   const buttonHeight = isImproved ? "lg" : "sm"
 
   return (
     <div 
       className={cn(
-        "flex flex-col h-full bg-background border-r transition-all duration-300 overflow-hidden",
-        !isImproved && "relative",
+        "flex flex-col h-full bg-background transition-all duration-300 overflow-hidden",
+        "relative",
+        "max-w-full", // Prevent overflow on mobile
+        // Dynamic width classes based on state
+        isCollapsed ? "w-16" : (isImproved ? "w-64" : "w-56"),
         className
       )}
-      style={{
-        width: isCollapsed ? `${collapsedWidth * 0.25}rem` : `${expandedWidth * 0.25}rem`
-      }}
     >
       {/* Header */}
       <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className={cn(
-            "flex items-center",
+            "flex items-center min-w-0",
             isCollapsed ? "justify-center w-full" : "space-x-3"
           )}>
-            <div className={cn(
-              "bg-violet-600 rounded-lg flex-shrink-0 flex items-center justify-center",
-              isImproved ? "p-2" : "w-8 h-8"
-            )}>
-              <Wallet className={cn("text-white", iconSize)} />
+            <div className="bg-violet-600 rounded-lg p-2 flex-shrink-0">
+              <Wallet className="text-white h-5 w-5" />
             </div>
             {!isCollapsed && (
-              <div className={cn("min-w-0", isImproved && "flex-1")}>
-                <h1 className={cn(
-                  "font-bold text-foreground truncate",
-                  isImproved ? "text-xl" : "text-lg"
-                )}>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-bold text-foreground truncate text-lg">
                   {headerTitle}
                 </h1>
-                <p className={cn(
-                  "text-muted-foreground truncate",
-                  isImproved ? "text-sm" : "text-xs"
-                )}>
+                <p className="text-muted-foreground truncate text-sm">
                   {headerSubtitle}
                 </p>
               </div>
@@ -161,33 +149,26 @@ export function BaseSidebar({
           </div>
           
           {/* Collapse Button */}
-          {(!isCollapsed || !isImproved) && (
+          {!isCollapsed && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className={cn(
-                "h-8 w-8 p-0 hidden lg:flex flex-shrink-0",
-                !isImproved && isCollapsed && "absolute top-4 right-2"
-              )}
+              className="h-8 w-8 p-0 hidden lg:flex flex-shrink-0 hover:bg-accent"
             >
-              {isCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
+              <ChevronLeft className="h-4 w-4" />
             </Button>
           )}
         </div>
         
-        {/* Expand Button for Improved Variant */}
-        {isImproved && isCollapsed && (
+        {/* Expand Button for Collapsed State */}
+        {isCollapsed && (
           <div className="flex justify-center mt-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="h-8 w-8 p-0 hidden lg:flex"
+              className="h-8 w-8 p-0 hidden lg:flex hover:bg-accent"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -197,7 +178,7 @@ export function BaseSidebar({
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto">
-        <nav className="p-4 space-y-2">
+        <nav className="px-3 py-2 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -236,18 +217,17 @@ export function BaseSidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t flex-shrink-0">
+      <div className="px-3 py-2 border-t flex-shrink-0">
         {/* Settings and Theme */}
         {!isCollapsed ? (
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <Link href="/ajustes" className="flex-1 mr-2">
               <Button
                 variant={pathname === "/ajustes" ? "default" : "ghost"}
                 size="sm"
                 className={cn(
-                  "w-full",
-                  pathname === "/ajustes" && "bg-violet-600 text-white hover:bg-violet-700",
-                  !isImproved && "justify-start"
+                  "w-full justify-start",
+                  pathname === "/ajustes" && "bg-violet-600 text-white hover:bg-violet-700"
                 )}
               >
                 <Settings className="mr-2 h-4 w-4 flex-shrink-0" />
@@ -259,15 +239,14 @@ export function BaseSidebar({
             </div>
           </div>
         ) : (
-          <div className="space-y-2 mb-4">
+          <div className="space-y-2 mb-2">
             <Link href="/ajustes">
               <Button
                 variant={pathname === "/ajustes" ? "default" : "ghost"}
                 size="sm"
                 className={cn(
-                  "w-full justify-center",
-                  pathname === "/ajustes" && "bg-violet-600 text-white hover:bg-violet-700",
-                  !isImproved ? "px-2" : "px-0"
+                  "w-full justify-center px-0",
+                  pathname === "/ajustes" && "bg-violet-600 text-white hover:bg-violet-700"
                 )}
                 title="Ajustes"
               >
@@ -281,124 +260,71 @@ export function BaseSidebar({
         )}
 
         {/* User Section */}
-        {isImproved ? (
-          <div className="space-y-3">
-            {!isCollapsed ? (
-              <Button
-                variant="ghost"
-                className="w-full p-3 h-auto justify-start"
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-              >
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <Avatar className={avatarSize}>
-                    <AvatarImage src={profile?.avatar_url || ""} />
-                    <AvatarFallback className="bg-violet-600 text-white">
-                      {getUserInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {profile?.name || user?.user_metadata?.name || "Usuario"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {user?.email}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0">
-                    {userMenuOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </div>
-                </div>
-              </Button>
-            ) : (
-              <div className="flex flex-col items-center space-y-2 w-full">
-                <Avatar className={avatarSize}>
-                  <AvatarImage src={profile?.avatar_url || ""} />
-                  <AvatarFallback className="bg-violet-600 text-white">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleSignOut}
-                  title="Cerrar Sesión"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            {!isCollapsed && userMenuOpen && (
-              <div className="space-y-2 pl-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">Cerrar Sesión</span>
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="relative">
+        <div className="space-y-2">
+          {!isCollapsed ? (
             <Button
               variant="ghost"
-              className={cn(
-                "w-full h-auto",
-                isCollapsed ? "p-2 justify-center" : "p-3 justify-start"
-              )}
+              className="w-full p-2 h-auto justify-start"
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              title={isCollapsed ? (profile?.name || user?.email || 'Usuario') : undefined}
             >
-              <div className={cn(
-                "flex items-center flex-1 min-w-0",
-                isCollapsed ? "justify-center" : "space-x-3"
-              )}>
+              <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <Avatar className={avatarSize}>
                   <AvatarImage src={profile?.avatar_url || ""} />
                   <AvatarFallback className="bg-violet-600 text-white">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-                {!isCollapsed && (
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {profile?.name || user?.email || 'Usuario'}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {user?.email}
-                    </p>
-                  </div>
-                )}
+                <div className="flex-1 text-left min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {profile?.name || user?.user_metadata?.name || "Usuario"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.email}
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  {userMenuOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
               </div>
             </Button>
+          ) : (
+            <div className="flex flex-col items-center space-y-2">
+              <Avatar className={avatarSize}>
+                <AvatarImage src={profile?.avatar_url || ""} />
+                <AvatarFallback className="bg-violet-600 text-white">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleSignOut}
+                title="Cerrar Sesión"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
 
-            {userMenuOpen && (
-              <div className={cn(
-                "absolute bottom-full mb-2 bg-background border rounded-lg shadow-lg p-2 z-50",
-                isCollapsed ? "left-0 w-48" : "left-0 right-0"
-              )}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar sesión
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+          {!isCollapsed && userMenuOpen && (
+            <div className="pl-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Cerrar Sesión</span>
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -118,17 +118,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-hidden">
+      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold truncate">Dashboard</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-muted-foreground text-sm sm:text-base">
-              Resumen de tu situación financiera - {activeContext.name}
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Dashboard</h1>
+          <div className="flex items-center gap-2 flex-wrap mt-1">
+            <p className="text-muted-foreground text-xs sm:text-sm lg:text-base truncate">
+              Resumen financiero - {activeContext.name}
             </p>
-            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
-              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
-            </Badge>
           </div>
         </div>
         
@@ -139,7 +136,7 @@ export default function DashboardPage() {
             value={selectedMonth.toString()} 
             onValueChange={handleMonthChange}
           >
-            <SelectTrigger className="w-24 sm:w-32">
+            <SelectTrigger className="w-24 sm:w-28 lg:w-36">
               <SelectValue placeholder={monthNames[selectedMonth]} />
             </SelectTrigger>
             <SelectContent>
@@ -155,7 +152,7 @@ export default function DashboardPage() {
             value={selectedYear.toString()} 
             onValueChange={handleYearChange}
           >
-            <SelectTrigger className="w-20 sm:w-24">
+            <SelectTrigger className="w-20 sm:w-24 lg:w-28">
               <SelectValue placeholder={selectedYear.toString()} />
             </SelectTrigger>
             <SelectContent>
@@ -170,23 +167,23 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium truncate">
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">
               {isCurrentMonth ? 'Saldo Total' : 'Saldo del Mes'}
             </CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {statsLoading ? (
               <div className="flex items-center space-x-2">
                 <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-                <span className="text-sm">Cargando...</span>
+                <span className="text-xs sm:text-sm">Cargando...</span>
               </div>
             ) : (
               <>
-                <div className={`text-xl sm:text-2xl font-bold truncate ${
+                <div className={`text-lg sm:text-xl lg:text-2xl font-bold truncate ${
                   (stats?.balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {formatAmount(stats?.balance ?? 0)}

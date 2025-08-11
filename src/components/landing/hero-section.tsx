@@ -26,7 +26,7 @@ export function HeroSection() {
             Finanzas Personales
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-6">
-            Galeon Money
+            Stonk$
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Toma el control de tus finanzas personales con una aplicación moderna, 
@@ -115,7 +115,7 @@ export function HeroSection() {
           <CardContent className="p-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold mb-4">
-                ¿Por qué elegir Galeon Money?
+                ¿Por qué elegir Stonk$?
               </h2>
               <div className="grid md:grid-cols-3 gap-6 mt-8">
                 <div className="text-center">

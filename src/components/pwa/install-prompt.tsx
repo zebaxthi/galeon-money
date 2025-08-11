@@ -37,7 +37,7 @@ export function InstallPrompt() {
           </Button>
         </div>
         <CardDescription className="text-xs">
-          Instala Galeon Money en tu dispositivo para un acceso más rápido
+          Instala Stonk$ en tu dispositivo para un acceso más rápido
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">

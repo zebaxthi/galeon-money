@@ -11,7 +11,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <FinancialContextProvider>
         <div className="flex h-screen bg-background">
           {/* Desktop Sidebar */}
-          <div className="hidden md:flex md:flex-col">
+          <div className="hidden md:flex md:flex-col border-r border-border">
             <Sidebar />
           </div>
 

@@ -82,7 +82,7 @@ export default function SignUpPage() {
             <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
               <ArrowLeft className="h-5 w-5" />
               <Wallet className="h-8 w-8 text-violet-600" />
-              <span className="text-xl font-bold">Galeon Money</span>
+              <span className="text-xl font-bold">Stonk$</span>
             </Link>
             <ThemeToggle />
           </div>
@@ -127,7 +127,7 @@ export default function SignUpPage() {
           <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <ArrowLeft className="h-5 w-5" />
             <Wallet className="h-8 w-8 text-violet-600" />
-            <span className="text-xl font-bold">Galeon Money</span>
+            <span className="text-xl font-bold">Stonk$</span>
           </Link>
           <ThemeToggle />
         </div>
@@ -140,7 +140,7 @@ export default function SignUpPage() {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Crear cuenta</CardTitle>
               <CardDescription>
-                Únete a Galeon Money y toma control de tus finanzas
+                Únete a Stonk$ y toma control de tus finanzas
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

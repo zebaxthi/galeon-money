@@ -35,9 +35,9 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-# 📘 Documentación de Desarrollo: Galeon Money
+# 📘 Documentación de Desarrollo: Stonk$
 
-**Galeon Money** es una aplicación web y móvil (PWA) de finanzas personales diseñada para uso individual o en pareja. Permite llevar un control detallado de ingresos, egresos, presupuestos y visualización de datos financieros con un enfoque moderno, visual e intuitivo.
+**Stonk$** es una aplicación web y móvil (PWA) de finanzas personales diseñada para uso individual o en pareja. Permite llevar un control detallado de ingresos, egresos, presupuestos y visualización de datos financieros con un enfoque moderno, visual e intuitivo.
 
 ---
 

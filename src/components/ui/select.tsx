@@ -120,9 +120,13 @@ const SelectContent = React.forwardRef<
             <div
                 ref={ref}
                 className={cn(
-                    "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md",
+                    "absolute z-50 mt-1 max-h-60 w-full min-w-max overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md",
                     className
                 )}
+                style={{
+                    left: 0,
+                    right: 'auto'
+                }}
                 {...props}
             >
                 {children}

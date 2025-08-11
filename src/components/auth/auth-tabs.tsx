@@ -175,7 +175,7 @@ export function AuthTabs() {
             <CardHeader className="text-center">
               <CardTitle>Crear cuenta</CardTitle>
               <CardDescription>
-                Únete a Galeon Money y toma control de tus finanzas
+                Únete a Stonk$ y toma control de tus finanzas
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

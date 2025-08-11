@@ -6,7 +6,7 @@ import { AuthProvider } from "@/providers/auth-provider"
 import { QueryProvider } from "@/providers/query-provider"
 import { AuthListener } from "@/providers/auth-listener"
 import { Toaster } from "@/components/ui/toaster"
-import { InstallPrompt } from "@/components/pwa/install-prompt"
+
 import { CleanupInitializer } from "@/components/utils/cleanup-initializer"
 
 const geistSans = Geist({
@@ -20,26 +20,26 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Galeon Money - Finanzas Personales",
-  description: "Gestiona tus finanzas de manera inteligente con Galeon Money",
+  title: "Stonk$ - Finanzas Personales",
+  description: "Gestiona tus finanzas de manera inteligente con Stonk$",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Galeon Money",
+    title: "Stonk$",
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
     type: "website",
-    siteName: "Galeon Money",
-    title: "Galeon Money - Finanzas Personales",
+    siteName: "Stonk$",
+    title: "Stonk$ - Finanzas Personales",
     description: "Gestiona tus finanzas de manera inteligente",
   },
   twitter: {
     card: "summary",
-    title: "Galeon Money - Finanzas Personales",
+    title: "Stonk$ - Finanzas Personales",
     description: "Gestiona tus finanzas de manera inteligente",
   },
 }
@@ -67,7 +67,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Galeon Money" />
+        <meta name="apple-mobile-web-app-title" content="Stonk$" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
         <meta name="msapplication-TileColor" content="#8b5cf6" />
@@ -85,7 +85,6 @@ export default function RootLayout({
               <AuthListener />
               {children}
               <Toaster />
-              <InstallPrompt />
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

@@ -268,17 +268,14 @@ export default function MovimientosPage() {
   // Función de formateo movida a @/lib/formatters
 
   return (
-    <div className="space-y-6 max-w-full">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-hidden">
+      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold truncate">Movimientos</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-muted-foreground text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Movimientos</h1>
+          <div className="flex items-center gap-2 flex-wrap mt-1">
+            <p className="text-muted-foreground text-xs sm:text-sm lg:text-base truncate">
               {isCurrentMonth ? 'Gestiona tus movimientos del mes actual' : `Movimientos de ${monthNames[selectedMonth]} ${selectedYear}`} - {activeContext.name}
             </p>
-            <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
-              {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
-            </Badge>
           </div>
         </div>
         
@@ -289,7 +286,7 @@ export default function MovimientosPage() {
             value={selectedMonth.toString()} 
             onValueChange={(value) => setSelectedMonth(parseInt(value))}
           >
-            <SelectTrigger className="w-24 sm:w-32">
+            <SelectTrigger className="w-24 sm:w-28 lg:w-36">
               <SelectValue placeholder={monthNames[selectedMonth]} />
             </SelectTrigger>
             <SelectContent>
@@ -305,7 +302,7 @@ export default function MovimientosPage() {
             value={selectedYear.toString()} 
             onValueChange={(value) => setSelectedYear(parseInt(value))}
           >
-            <SelectTrigger className="w-20 sm:w-24">
+            <SelectTrigger className="w-20 sm:w-24 lg:w-28">
               <SelectValue placeholder={selectedYear.toString()} />
             </SelectTrigger>
             <SelectContent>
@@ -321,14 +318,14 @@ export default function MovimientosPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Formulario de Registro */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="truncate">Registrar Movimiento</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg sm:text-xl truncate">Registrar Movimiento</CardTitle>
             <CardDescription className="text-sm">
               Añade un nuevo ingreso o egreso a tu registro financiero
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Tipo de Movimiento */}
               <div className="space-y-2">
@@ -337,7 +334,7 @@ export default function MovimientosPage() {
                   setMovementType(value as 'income' | 'expense')
                   setSelectedCategoryId('') // Reset category when type changes
                 }}>
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-2 h-10">
                     <TabsTrigger value="income" className="text-green-600 text-xs sm:text-sm">
                       <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="truncate">Ingreso</span>
@@ -360,7 +357,7 @@ export default function MovimientosPage() {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    className="pl-10"
+                    className="pl-10 text-sm sm:text-base"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     required
@@ -372,7 +369,7 @@ export default function MovimientosPage() {
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría (opcional)</Label>
                 <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId} disabled={categoriesLoading}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue placeholder={
                       categoriesLoading 
                         ? "Cargando categorías..." 
@@ -386,8 +383,8 @@ export default function MovimientosPage() {
                     {availableCategories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         <div className="flex items-center space-x-2">
-                          <span>{category.icon}</span>
-                          <span className="truncate">{category.name}</span>
+                          <span className="text-base sm:text-lg">{category.icon}</span>
+                          <span className="text-sm sm:text-base truncate">{category.name}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -403,6 +400,7 @@ export default function MovimientosPage() {
                   type="date"
                   value={movementDate}
                   onChange={(e) => setMovementDate(e.target.value)}
+                  className="text-sm sm:text-base"
                   required
                 />
               </div>
@@ -415,23 +413,23 @@ export default function MovimientosPage() {
                   <Input
                     id="movementDescription"
                     placeholder="Descripción del movimiento..."
-                    className="pl-10"
+                    className="pl-10 text-sm sm:text-base"
                     value={movementDescription}
                     onChange={(e) => setMovementDescription(e.target.value)}
                   />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting || categoriesLoading}>
+              <Button type="submit" className="w-full h-10 sm:h-11" disabled={isSubmitting || categoriesLoading}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
-                    <span className="truncate">Registrando...</span>
+                    <span className="text-sm sm:text-base truncate">Registrando...</span>
                   </>
                 ) : (
                   <>
                     <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">Registrar Movimiento</span>
+                    <span className="text-sm sm:text-base truncate">Registrar Movimiento</span>
                   </>
                 )}
               </Button>
@@ -440,21 +438,21 @@ export default function MovimientosPage() {
         </Card>
 
         {/* Lista de Movimientos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="truncate">Movimientos Registrados</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg sm:text-xl truncate">Movimientos Registrados</CardTitle>
             <CardDescription className="text-sm">
               Gestiona tus transacciones registradas
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {/* Filtros y búsqueda */}
             <div className="space-y-4 mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <Input
                   placeholder="Buscar movimientos..."
-                  className="pl-10"
+                  className="pl-10 text-sm sm:text-base"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -492,50 +490,50 @@ export default function MovimientosPage() {
             {movementsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin flex-shrink-0" />
-                <span className="ml-2">Cargando movimientos...</span>
+                <span className="ml-2 text-sm sm:text-base">Cargando movimientos...</span>
               </div>
             ) : filteredMovements.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
                 {searchTerm || filterType !== 'all' || filterCategory !== 'all' ? (
                   <>
-                    <p>No se encontraron movimientos</p>
-                    <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                    <p className="text-sm sm:text-base">No se encontraron movimientos</p>
+                    <p className="text-xs sm:text-sm">Intenta ajustar los filtros de búsqueda</p>
                   </>
                 ) : (
                   <>
-                    <p>No hay movimientos registrados</p>
-                    <p className="text-sm">Registra tu primer movimiento usando el formulario</p>
+                    <p className="text-sm sm:text-base">No hay movimientos registrados</p>
+                    <p className="text-xs sm:text-sm">Registra tu primer movimiento usando el formulario</p>
                   </>
                 )}
               </div>
             ) : (
-              <div className="space-y-4 max-h-[60vh] sm:max-h-96 overflow-y-auto overscroll-contain">
+              <div className="space-y-2 sm:space-y-4 max-h-[60vh] sm:max-h-96 overflow-y-auto overscroll-contain">
                 {filteredMovements.map((movement) => {
                   const category = categories.find(c => c.id === movement.category_id)
                   return (
-                    <div key={movement.id} className="flex items-center justify-between p-3 border rounded-lg min-w-0">
-                      <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className={`p-2 rounded-full flex-shrink-0 ${
+                    <div key={movement.id} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg min-w-0">
+                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                        <div className={`p-1.5 sm:p-2 rounded-full flex-shrink-0 ${
                           movement.type === 'income' 
                             ? 'bg-green-100 text-green-600 dark:bg-green-900/20' 
                             : 'bg-red-100 text-red-600 dark:bg-red-900/20'
                         }`}>
                           {movement.type === 'income' ? (
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                           ) : (
-                            <Minus className="h-4 w-4" />
+                            <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">
+                          <p className="font-medium truncate text-sm sm:text-base">
                             {movement.description || 'Sin descripción'}
                           </p>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-1 sm:space-y-0">
                             <Badge variant="secondary" className="text-xs w-fit">
                               <span className="truncate">{category ? `${category.icon} ${category.name}` : '🏷️ Sin categoría'}</span>
                             </Badge>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs sm:text-sm text-muted-foreground">
                               {formatDate(movement.movement_date)}
                             </div>
                           </div>
@@ -557,18 +555,18 @@ export default function MovimientosPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 flex-shrink-0">
-                        <span className={`font-bold text-sm sm:text-base ${
+                      <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                        <span className={`font-bold text-xs sm:text-sm lg:text-base ${
                           movement.type === 'income' ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {formatAmount(movement.amount, movement.type)}
                         </span>
-                        <div className="flex space-x-1">
+                        <div className="flex space-x-0.5 sm:space-x-1">
                           <Button 
                             variant="outline" 
                             size="sm"
                             onClick={() => handleEditMovement(movement)}
-                            className="h-8 w-8 p-0"
+                            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
@@ -577,7 +575,7 @@ export default function MovimientosPage() {
                             variant="outline" 
                             size="sm"
                             onClick={() => handleDeleteMovement(movement.id, movement.description)}
-                            className="h-8 w-8 p-0"
+                            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>

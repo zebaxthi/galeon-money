@@ -134,7 +134,7 @@ export function useExport() {
 
       // Generar nombre del archivo
       const fechaActual = new Date().toISOString().split('T')[0]
-      const nombreArchivo = `galeon-money-reporte-${fechaActual}.xlsx`
+      const nombreArchivo = `stonks-reporte-${fechaActual}.xlsx`
 
       // Descargar archivo
       XLSX.writeFile(workbook, nombreArchivo)

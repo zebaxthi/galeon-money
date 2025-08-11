@@ -304,9 +304,6 @@ export default function PresupuestosPage() {
           <p className="text-muted-foreground">
             Controla tus gastos estableciendo límites por categoría - {activeContext.name}
           </p>
-          <Badge variant={activeContext.user_role === 'owner' ? 'default' : 'secondary'} className="text-xs">
-            {activeContext.user_role === 'owner' ? 'Propietario' : 'Miembro'}
-          </Badge>
         </div>
       </div>
 
