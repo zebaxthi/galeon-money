@@ -1,11 +1,12 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useNotifications } from '@/hooks/useNotifications'
 import { 
@@ -36,17 +37,16 @@ export function AppPreferences({ preferences, updatePreferences }: AppPreference
     unsubscribe
   } = useNotifications()
   return (
-    <Card className="h-fit">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Settings2 className="h-5 w-5 text-primary" />
-          Preferencias
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Settings2 className="mr-2 h-4 w-4" />
+          Preferencias de la Aplicación
         </CardTitle>
-        <CardDescription className="text-sm">
-          Personaliza tu experiencia en la aplicación
+        <CardDescription>
+          Personaliza la apariencia y configuración de la aplicación
         </CardDescription>
       </CardHeader>
-      
       <CardContent className="space-y-6">
         {/* Apariencia */}
         <div className="space-y-4">

@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { 
   Shield, 
@@ -87,17 +88,16 @@ export function AccountSecurity({ signOut, deleteAccount }: AccountSecurityProps
   }
 
   return (
-    <Card className="h-fit">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Shield className="h-5 w-5 text-primary" />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Shield className="mr-2 h-4 w-4" />
           Seguridad
         </CardTitle>
-        <CardDescription className="text-sm">
+        <CardDescription>
           Gestiona la seguridad y privacidad de tu cuenta
         </CardDescription>
       </CardHeader>
-      
       <CardContent className="space-y-6">
         {/* Estado de seguridad */}
         <div className="space-y-3">

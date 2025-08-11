@@ -170,38 +170,37 @@ export function ProfileSettings({ profile, updateProfile, clearError }: ProfileS
   }
 
   return (
-    <Card className="mx-1 lg:mx-0">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center text-lg lg:text-xl">
-          <User className="mr-2 h-5 w-5" />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <User className="mr-2 h-4 w-4" />
           Perfil de Usuario
         </CardTitle>
-        <CardDescription className="text-sm">
+        <CardDescription>
           Actualiza tu información personal
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="avatar" className="text-sm font-medium">Foto de perfil</Label>
-          <div className="flex items-start space-x-3 lg:space-x-4">
-            <Avatar className="h-20 w-20 lg:h-24 lg:w-24 flex-shrink-0">
+          <Label htmlFor="avatar">Foto de perfil</Label>
+          <div className="flex items-start space-x-4">
+            <Avatar className="h-20 w-20">
               <AvatarImage src={profile?.avatar_url || ""} />
-              <AvatarFallback className="bg-violet-600 text-white text-lg lg:text-xl">
+              <AvatarFallback className="bg-primary text-primary-foreground">
                 {profile?.name ? profile.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 space-y-3 min-w-0">
-              <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 space-y-2">
+              <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isLoadingProfile}
-                  className="flex-1 sm:flex-none"
                 >
-                  <Camera className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{profile?.avatar_url ? 'Cambiar foto' : 'Subir foto'}</span>
+                  <Camera className="mr-2 h-4 w-4" />
+                  {profile?.avatar_url ? 'Cambiar foto' : 'Subir foto'}
                 </Button>
                 {profile?.avatar_url && (
                   <Button
@@ -210,27 +209,20 @@ export function ProfileSettings({ profile, updateProfile, clearError }: ProfileS
                     size="sm"
                     onClick={handleRemoveAvatar}
                     disabled={isLoadingProfile}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-none"
+                    className="text-red-600 hover:text-red-700"
                   >
                     {isLoadingProfile ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin flex-shrink-0" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Trash2 className="mr-2 h-4 w-4 flex-shrink-0" />
+                      <Trash2 className="mr-2 h-4 w-4" />
                     )}
-                    <span className="truncate">{isLoadingProfile ? 'Procesando...' : 'Eliminar'}</span>
+                    {isLoadingProfile ? 'Procesando...' : 'Eliminar'}
                   </Button>
                 )}
               </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">
-                  JPG, PNG o GIF. Máximo 5MB.
-                </p>
-                {profile?.avatar_url && (
-                  <p className="text-xs text-green-600">
-                    ✓ Foto de perfil configurada
-                  </p>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground">
+                JPG, PNG o GIF. Máximo 5MB.
+              </p>
             </div>
           </div>
           <input
@@ -242,27 +234,26 @@ export function ProfileSettings({ profile, updateProfile, clearError }: ProfileS
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="nombre" className="text-sm font-medium">Nombre completo</Label>
+            <Label htmlFor="nombre">Nombre completo</Label>
             <Input
               id="nombre"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Tu nombre"
-              className="text-base"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+            <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="email"
                 value={user?.email || ''}
                 disabled
-                className="pl-10 bg-muted text-base"
+                className="pl-10 bg-muted"
               />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -271,7 +262,7 @@ export function ProfileSettings({ profile, updateProfile, clearError }: ProfileS
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone" className="text-sm font-medium">Teléfono</Label>
+            <Label htmlFor="phone">Teléfono</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -279,13 +270,13 @@ export function ProfileSettings({ profile, updateProfile, clearError }: ProfileS
                 value={telefono}
                 onChange={(e) => setTelefono(e.target.value)}
                 placeholder="Tu número de teléfono"
-                className="pl-10 text-base"
+                className="pl-10"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location" className="text-sm font-medium">Ubicación</Label>
+            <Label htmlFor="location">Ubicación</Label>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -293,30 +284,30 @@ export function ProfileSettings({ profile, updateProfile, clearError }: ProfileS
                 value={ubicacion}
                 onChange={(e) => setUbicacion(e.target.value)}
                 placeholder="Tu ciudad o país"
-                className="pl-10 text-base"
+                className="pl-10"
               />
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bio" className="text-sm font-medium">Biografía</Label>
-            <div className="relative">
-              <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="bio"
-                value={biografia}
-                onChange={(e) => setBiografia(e.target.value)}
-                placeholder="Cuéntanos un poco sobre ti"
-                className="pl-10 text-base"
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="bio">Biografía</Label>
+          <div className="relative">
+            <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="bio"
+              value={biografia}
+              onChange={(e) => setBiografia(e.target.value)}
+              placeholder="Cuéntanos un poco sobre ti"
+              className="pl-10"
+            />
           </div>
         </div>
 
         <Button 
           onClick={handleSaveProfile} 
           disabled={isLoadingProfile}
-          className="w-full h-11"
+          className="w-full"
         >
           {isLoadingProfile ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

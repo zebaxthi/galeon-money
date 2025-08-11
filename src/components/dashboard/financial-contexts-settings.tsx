@@ -227,22 +227,20 @@ export function FinancialContextsSettings() {
 
   if (contextLoading) {
     return (
-      <Card className="col-span-full lg:col-span-2 h-fit">
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
     )
   }
 
   return (
-    <Card className="col-span-full lg:col-span-2 h-fit">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Building2 className="h-5 w-5 text-primary" />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Building2 className="h-4 w-4" />
           Contextos Financieros
         </CardTitle>
-        <CardDescription className="text-sm">
+        <CardDescription>
           Gestiona tus contextos financieros y colaboradores
         </CardDescription>
       </CardHeader>
@@ -250,7 +248,7 @@ export function FinancialContextsSettings() {
       <CardContent className="space-y-6">
         {/* Selector de Contexto Activo */}
         <div className="space-y-3">
-          <Label className="text-sm font-medium">Contexto Activo</Label>
+          <Label>Contexto Activo</Label>
           <Select 
             value={activeContext?.id || ''} 
             onValueChange={handleSetActiveContext}
@@ -289,10 +287,10 @@ export function FinancialContextsSettings() {
               )}
             </SelectContent>
           </Select>
-          {activeContext && (
-            <div className="text-xs text-muted-foreground">
-              {activeContext.description || 'Sin descripción'}
-            </div>
+          {activeContext && activeContext.description && (
+            <p className="text-sm text-muted-foreground">
+              {activeContext.description}
+            </p>
           )}
         </div>
 
@@ -301,7 +299,7 @@ export function FinancialContextsSettings() {
         {/* Crear Nuevo Contexto */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Crear Nuevo Contexto</h3>
+            <h3 className="font-medium">Crear Nuevo Contexto</h3>
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -373,7 +371,7 @@ export function FinancialContextsSettings() {
             {/* Editar Contexto Actual */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Editar Contexto Actual</h3>
+                <h3 className="font-medium">Editar Contexto Actual</h3>
                 {activeContext.user_role === 'owner' && (
                   <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
                     <DialogTrigger asChild>
@@ -452,7 +450,7 @@ export function FinancialContextsSettings() {
             {/* Gestión de Miembros */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium flex items-center gap-2">
+                <h3 className="font-medium flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Miembros ({activeContextMembers.length})
                 </h3>
@@ -572,7 +570,7 @@ export function FinancialContextsSettings() {
               <>
                 <Separator />
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-destructive">Zona de Peligro</h3>
+                  <h3 className="font-medium text-destructive">Zona de Peligro</h3>
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>

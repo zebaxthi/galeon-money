@@ -1,16 +1,13 @@
 "use client"
 
 import { useState } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProfileSettings } from '@/components/dashboard/profile-settings'
 import { FinancialContextsSettings } from '@/components/dashboard/financial-contexts-settings'
 import { AppPreferences } from '@/components/dashboard/app-preferences'
 import { AccountSecurity } from '@/components/dashboard/account-security'
 import { useSettings } from '@/hooks/useSettings'
-import { PerformanceMonitor } from '@/components/dashboard/performance-monitor'
-import { QueryPerformanceMonitor } from '@/components/dashboard/query-performance-monitor'
-import { Loader2, User, Folder, Settings, Shield, Gauge } from 'lucide-react'
+import { Loader2, User, Folder, Settings, Shield } from 'lucide-react'
 
 export default function AjustesPage() {
   const { 
@@ -28,7 +25,7 @@ export default function AjustesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
@@ -36,7 +33,7 @@ export default function AjustesPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-destructive">Error al cargar la configuración</p>
           <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
@@ -46,124 +43,68 @@ export default function AjustesPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header fijo */}
-      <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-6xl">
-          <div className="mb-4 md:mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Configuración</h1>
-            <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
-              Gestiona tu perfil, contextos financieros y preferencias de la aplicación
-            </p>
-          </div>
-        </div>
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-hidden">
+      {/* Header */}
+      <div className="min-w-0 flex-1">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Configuración</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm lg:text-base truncate mt-1">
+          Gestiona tu perfil, contextos financieros y preferencias de la aplicación
+        </p>
       </div>
 
-      {/* Contenido scrolleable */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-6xl pb-20 md:pb-8">
-            {/* Tabs Navigation */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              {/* Tabs List - Mejorado para móviles */}
-              <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 mb-6">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
-                  <TabsTrigger 
-                    value="profile" 
-                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">Perfil</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="contexts" 
-                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <Folder className="h-4 w-4" />
-                    <span className="hidden sm:inline">Contextos</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="preferences" 
-                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline">Preferencias</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="security" 
-                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <Shield className="h-4 w-4" />
-                    <span className="hidden sm:inline">Seguridad</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="performance" 
-                    className="flex flex-col items-center gap-1 p-3 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <Gauge className="h-4 w-4" />
-                    <span className="hidden sm:inline">Rendimiento</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 gap-1">
+          <TabsTrigger value="profile" className="flex items-center gap-1 px-2 py-2 text-xs sm:text-sm">
+            <User className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:inline">Perfil</span>
+          </TabsTrigger>
+          <TabsTrigger value="contexts" className="flex items-center gap-1 px-2 py-2 text-xs sm:text-sm">
+            <Folder className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:inline">Contextos</span>
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="flex items-center gap-1 px-2 py-2 text-xs sm:text-sm">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:inline">Preferencias</span>
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-1 px-2 py-2 text-xs sm:text-sm">
+            <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:inline">Seguridad</span>
+          </TabsTrigger>
+        </TabsList>
 
-              {/* Tab Contents */}
-              <TabsContent value="profile" className="mt-0">
-                <div className="max-w-4xl">
-                  {profile ? (
-                    <ProfileSettings 
-                      profile={profile} 
-                      updateProfile={updateProfile} 
-                      clearError={clearError} 
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-32">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+        <TabsContent value="profile" className="mt-6">
+          {profile ? (
+            <ProfileSettings 
+              profile={profile} 
+              updateProfile={updateProfile} 
+              clearError={clearError} 
+            />
+          ) : (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
+        </TabsContent>
 
-              <TabsContent value="contexts" className="mt-0">
-                <div className="max-w-4xl">
-                  <FinancialContextsSettings />
-                </div>
-              </TabsContent>
+        <TabsContent value="contexts" className="mt-6">
+          <FinancialContextsSettings />
+        </TabsContent>
 
-              <TabsContent value="preferences" className="mt-0">
-                <div className="max-w-4xl">
-                  <AppPreferences 
-                    preferences={preferences}
-                    updatePreferences={updatePreferences}
-                  />
-                </div>
-              </TabsContent>
+        <TabsContent value="preferences" className="mt-6">
+          <AppPreferences 
+            preferences={preferences}
+            updatePreferences={updatePreferences}
+          />
+        </TabsContent>
 
-              <TabsContent value="security" className="mt-0">
-                <div className="max-w-4xl">
-                  <AccountSecurity 
-                    signOut={signOut}
-                    deleteAccount={deleteAccount}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="performance" className="mt-0">
-                <div className="max-w-4xl space-y-8">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Métricas Web Vitals</h3>
-                    <PerformanceMonitor showDetails={true} />
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Rendimiento de Base de Datos</h3>
-                    <QueryPerformanceMonitor showDetails={true} />
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </ScrollArea>
-      </div>
+        <TabsContent value="security" className="mt-6">
+          <AccountSecurity 
+            signOut={signOut}
+            deleteAccount={deleteAccount}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
