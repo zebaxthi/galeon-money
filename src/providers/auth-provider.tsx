@@ -33,11 +33,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Obtener sesión inicial UNA SOLA VEZ
     const getInitialSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
-        setSession(initialSession)
-        setUser(initialSession?.user ?? null)
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Error getting initial session:', error)
+          // Si hay error de refresh token, limpiar la sesión
+          if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
+            await supabase.auth.signOut()
+            setSession(null)
+            setUser(null)
+          }
+        } else {
+          setSession(initialSession)
+          setUser(initialSession?.user ?? null)
+        }
       } catch (error) {
         console.error('Error getting initial session:', error)
+        // En caso de error, limpiar la sesión
+        setSession(null)
+        setUser(null)
       } finally {
         setLoading(false)
       }
@@ -48,15 +62,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Escuchar cambios de autenticación UNA SOLA VEZ
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        setSession(newSession)
-        setUser(newSession?.user ?? null)
-        
-        if (event === 'SIGNED_OUT') {
-          handleSignOut()
-        }
-        
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          handleSignIn()
+        try {
+          setSession(newSession)
+          setUser(newSession?.user ?? null)
+          
+          if (event === 'SIGNED_OUT') {
+            handleSignOut()
+          }
+          
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            handleSignIn()
+          }
+          
+          // Manejar errores de token
+          if (event === 'TOKEN_REFRESHED' && !newSession) {
+            console.warn('Token refresh failed, signing out user')
+            await supabase.auth.signOut()
+          }
+        } catch (error) {
+          console.error('Auth state change error:', error)
+          // En caso de error, limpiar la sesión
+          setSession(null)
+          setUser(null)
         }
       }
     )

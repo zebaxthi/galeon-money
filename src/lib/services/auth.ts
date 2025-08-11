@@ -2,10 +2,51 @@ import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/lib/types'
 
 export class AuthService {
+  // Manejar errores de refresh token
+  static async handleAuthError(error: unknown) {
+    const errorMessage = error && typeof error === 'object' && 'message' in error 
+      ? String(error.message) 
+      : String(error)
+      
+    if (errorMessage.includes('refresh_token_not_found') || 
+        errorMessage.includes('Invalid Refresh Token') ||
+        errorMessage.includes('Refresh Token Not Found')) {
+      console.warn('Invalid refresh token detected, signing out user')
+      await supabase.auth.signOut()
+      return true // Indica que se manejó el error
+    }
+    return false // No se manejó el error
+  }
+
+  // Obtener sesión con manejo de errores
+  static async getSessionSafely() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) {
+        const handled = await this.handleAuthError(error)
+        if (handled) return null
+        throw error
+      }
+      return session
+    } catch (error) {
+      await this.handleAuthError(error)
+      return null
+    }
+  }
   static async getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) throw error
-    return user
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error) {
+        const handled = await this.handleAuthError(error)
+        if (handled) return null
+        throw error
+      }
+      return user
+    } catch (error) {
+      const handled = await this.handleAuthError(error)
+      if (handled) return null
+      throw error
+    }
   }
 
   static async getCurrentProfile(): Promise<Profile | null> {

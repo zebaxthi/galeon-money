@@ -261,16 +261,27 @@ export function FinancialContextsSettings() {
             </SelectTrigger>
             <SelectContent>
               {userContexts && userContexts.length > 0 ? (
-                userContexts.map((context) => (
-                  <SelectItem key={context.id} value={context.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{context.name}</span>
-                      {context.user_role === 'owner' && (
-                        <Crown key={`crown-${context.id}`} className="h-3 w-3 text-yellow-500" />
-                      )}
-                    </div>
-                  </SelectItem>
-                ))
+                userContexts
+                  .filter((context) => {
+                    // Filter out invalid contexts, especially 'argilaez'
+                    return (
+                      context &&
+                      context.id &&
+                      context.name &&
+                      context.name.trim() !== '' &&
+                      context.name !== 'argilaez'
+                    )
+                  })
+                  .map((context) => (
+                    <SelectItem key={context.id} value={context.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{context.name}</span>
+                        {context.user_role === 'owner' && (
+                          <Crown key={`crown-${context.id}`} className="h-3 w-3 text-yellow-500" />
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
               ) : (
                 <div className="p-2 text-sm text-muted-foreground">
                   {contextLoading ? 'Cargando contextos...' : 'No hay contextos disponibles'}

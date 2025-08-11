@@ -7,6 +7,7 @@ import { QueryProvider } from "@/providers/query-provider"
 import { AuthListener } from "@/providers/auth-listener"
 import { Toaster } from "@/components/ui/toaster"
 import { InstallPrompt } from "@/components/pwa/install-prompt"
+import { CleanupInitializer } from "@/components/utils/cleanup-initializer"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -80,6 +81,7 @@ export default function RootLayout({
         >
           <QueryProvider>
             <AuthProvider>
+              <CleanupInitializer />
               <AuthListener />
               {children}
               <Toaster />

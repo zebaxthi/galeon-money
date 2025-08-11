@@ -11,6 +11,27 @@ import type { FinancialContextState } from '@/lib/types'
 const FinancialContextContext = createContext<FinancialContextState | undefined>(undefined)
 
 /**
+ * Validates if a context object has the required properties
+ * @param context - The context object to validate
+ * @returns True if the context is valid, false otherwise
+ */
+const isValidContext = (context: unknown): context is FinancialContext => {
+  if (!context || typeof context !== 'object' || context === null) {
+    return false
+  }
+  
+  const ctx = context as Record<string, unknown>
+  
+  return (
+    typeof ctx.id === 'string' &&
+    typeof ctx.name === 'string' &&
+    ctx.id.length > 0 &&
+    ctx.name.length > 0 &&
+    ctx.name !== 'argilaez' // Explicitly exclude this phantom context
+  )
+}
+
+/**
  * Retrieves the active financial context from localStorage
  * Provides client-side persistence for the selected financial context
  * @returns The stored financial context or null if not found/invalid
@@ -19,8 +40,21 @@ const getContextFromStorage = (): FinancialContext | null => {
   if (typeof window === 'undefined') return null
   try {
     const stored = localStorage.getItem('activeFinancialContext')
-    return stored ? JSON.parse(stored) : null
-  } catch {
+    if (!stored) return null
+    
+    const context = JSON.parse(stored)
+    
+    // Validate the context before returning it
+    if (!isValidContext(context)) {
+      console.warn('Invalid context found in localStorage, removing:', context)
+      localStorage.removeItem('activeFinancialContext')
+      return null
+    }
+    
+    return context
+  } catch (error) {
+    console.warn('Error parsing context from localStorage:', error)
+    localStorage.removeItem('activeFinancialContext')
     return null
   }
 }

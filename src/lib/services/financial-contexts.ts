@@ -264,6 +264,18 @@ export class FinancialContextService {
         continue
       }
       
+      // Validate context data and filter out invalid contexts
+      if (
+        !context.id ||
+        !context.name ||
+        typeof context.name !== 'string' ||
+        context.name.trim() === '' ||
+        context.name === 'argilaez' // Explicitly exclude this phantom context
+      ) {
+        console.warn('Invalid context found in database, skipping:', context)
+        continue
+      }
+      
       result.push({
         id: context.id,
         name: context.name,
